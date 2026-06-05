@@ -56,22 +56,16 @@ function Footer() {
                 </span>
               </li>
               <li className="flex items-center gap-3">
-                <Phone className="w-5 h-5 flex-shrink-0 opacity-80" />
-                <span className="text-sm opacity-90">9602338804</span>
-              </li>
-              <li className="flex items-center gap-3">
                 <Mail className="w-5 h-5 flex-shrink-0 opacity-80" />
-                <span className="text-sm opacity-90">ravichhimpa04@gmail.com</span>
+                <span className="text-sm opacity-90">admin@mrapexindustrial.in</span>
               </li>
               <li className="flex items-center gap-3 pt-2">
                 <a 
-                  href="https://wa.me/9602338804" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm font-medium bg-[#25D366] text-white px-4 py-2 rounded-full hover:bg-[#20bd5a] transition-colors"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Chat on WhatsApp
+                href="https://wa.me/919602338804?text=Hello%20MR%20Apex%20Industrial%20Components"
+                target="_blank"
+               rel="noopener noreferrer"
+              >
+                  💬 WhatsApp Us
                 </a>
               </li>
             </ul>

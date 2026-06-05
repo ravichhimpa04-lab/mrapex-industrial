@@ -61,10 +61,6 @@ function ContactPage() {
                       <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
                         <Phone className="w-6 h-6 text-primary" />
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-lg text-foreground">Phone</h3>
-                        <p className="text-muted-foreground mt-1">9602338804</p>
-                      </div>
                     </div>
                     
                     <div className="flex items-start gap-4">
@@ -73,7 +69,7 @@ function ContactPage() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg text-foreground">Email</h3>
-                        <p className="text-muted-foreground mt-1">ravichhimpa04@gmail.com</p>
+                        <p className="text-muted-foreground mt-1">admin@mrapexindustrial.in</p>
                       </div>
                     </div>
                   </div>
@@ -83,7 +79,7 @@ function ContactPage() {
                   <h3 className="font-bold text-lg mb-2">Instant Support</h3>
                   <p className="opacity-90 mb-6 text-sm">Need immediate assistance? Reach out to us directly on WhatsApp.</p>
                   <a 
-                    href="https://wa.me/9602338804" 
+                    href="https://wa.me/919602338804?text=Hello%20MR%20Apex%20Industrial%20Components" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center w-full gap-2 bg-[#25D366] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#20bd5a] transition-colors"

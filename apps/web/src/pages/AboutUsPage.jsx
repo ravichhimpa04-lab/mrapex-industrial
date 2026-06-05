@@ -99,10 +99,6 @@ function AboutUsPage() {
                     <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center flex-shrink-0">
                       <Phone className="w-6 h-6" />
                     </div>
-                    <div>
-                      <p className="font-semibold text-lg">Phone</p>
-                      <p className="opacity-90">9602338804</p>
-                    </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center flex-shrink-0">
@@ -110,7 +106,7 @@ function AboutUsPage() {
                     </div>
                     <div>
                       <p className="font-semibold text-lg">Email</p>
-                      <p className="opacity-90">ravichhimpa04@gmail.com</p>
+                      <p className="opacity-90">admin@mrapexindustrial.in</p>
                     </div>
                   </div>
                 </div>
@@ -121,7 +117,7 @@ function AboutUsPage() {
                   <Link to="/contact">Request a Quote</Link>
                 </Button>
                 <Button size="lg" asChild className="bg-[#25D366] text-white hover:bg-[#20bd5a] h-14 px-8 text-lg border-none">
-                  <a href="https://wa.me/9602338804" target="_blank" rel="noopener noreferrer">
+                  <a href="https://wa.me/919602338804?text=Hello%20MR%20Apex%20Industrial%20Components" target="_blank" rel="noopener noreferrer">
                     <MessageCircle className="w-5 h-5 mr-2" />
                     Chat on WhatsApp
                   </a>
