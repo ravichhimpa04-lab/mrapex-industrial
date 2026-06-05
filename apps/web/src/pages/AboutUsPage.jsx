@@ -3,7 +3,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Zap, Map, Clock, ShieldCheck, Settings, Truck, MapPin, Phone, Mail, MessageCircle } from 'lucide-react';
+import { Zap, Map, Clock, ShieldCheck, Settings, Truck, MapPin, Mail, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
@@ -106,7 +106,7 @@ function AboutUsPage() {
                     </div>
                     <div>
                       <p className="font-semibold text-lg">Email</p>
-                      <p className="opacity-90">admin@mrapexindustrial.in</p>
+                      <p className="opacity-90">info@mrapexindustrial.in</p>
                     </div>
                   </div>
                 </div>

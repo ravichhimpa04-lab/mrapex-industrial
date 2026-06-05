@@ -69,7 +69,7 @@ function ContactPage() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg text-foreground">Email</h3>
-                        <p className="text-muted-foreground mt-1">admin@mrapexindustrial.in</p>
+                        <p className="text-muted-foreground mt-1">info@mrapexindustrial.in</p>
                       </div>
                     </div>
                   </div>

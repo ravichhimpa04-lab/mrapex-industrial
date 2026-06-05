@@ -57,7 +57,7 @@ function Footer() {
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-5 h-5 flex-shrink-0 opacity-80" />
-                <span className="text-sm opacity-90">admin@mrapexindustrial.in</span>
+                <span className="text-sm opacity-90">info@mrapexindustrial.in</span>
               </li>
               <li className="flex items-center gap-3 pt-2">
                 <a 
