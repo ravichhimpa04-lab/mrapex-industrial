@@ -38,7 +38,7 @@ function AboutUsPage() {
               className="max-w-3xl"
             >
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 tracking-tight">
-                About MRAPEX
+                About MR Apex Industrial Components
               </h1>
               <p className="text-lg md:text-xl text-white/90 leading-relaxed">
                 MR Apex Industrial Components is an industrial sourcing and supply company helping businesses procure industrial components, MRO supplies, electrical products and custom engineering items through a reliable supplier network. We focus on quality, competitive pricing and fast response support.
@@ -101,7 +101,7 @@ function AboutUsPage() {
                     </div>
                     <div>
                       <p className="font-semibold text-lg">Phone</p>
-                      <p className="opacity-90">6375858804</p>
+                      <p className="opacity-90">9602338804</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -121,7 +121,7 @@ function AboutUsPage() {
                   <Link to="/contact">Request a Quote</Link>
                 </Button>
                 <Button size="lg" asChild className="bg-[#25D366] text-white hover:bg-[#20bd5a] h-14 px-8 text-lg border-none">
-                  <a href="https://wa.me/6375858804" target="_blank" rel="noopener noreferrer">
+                  <a href="https://wa.me/9602338804" target="_blank" rel="noopener noreferrer">
                     <MessageCircle className="w-5 h-5 mr-2" />
                     Chat on WhatsApp
                   </a>

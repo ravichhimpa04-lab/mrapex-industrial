@@ -11,8 +11,8 @@ function ContactPage() {
   return (
     <>
       <Helmet>
-        <title>Contact Us - MRAPEX</title>
-        <meta name="description" content="Contact MRAPEX for industrial components, MRO supplies, and custom engineering parts. Request a quote today." />
+        <title>Contact Us - MR Apex Industrial Components</title>
+        <meta name="description" content="Contact MR Apex Industrial Components for industrial components, MRO supplies, and custom engineering parts. Request a quote today." />
       </Helmet>
 
       <Header />
@@ -52,7 +52,7 @@ function ContactPage() {
                         <MapPin className="w-6 h-6 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-lg text-foreground">MRAPEX</h3>
+                        <h3 className="font-semibold text-lg text-foreground">MR Apex Industrial Components</h3>
                         <p className="text-muted-foreground mt-1">Jaipur, Rajasthan<br />India</p>
                       </div>
                     </div>
@@ -63,7 +63,7 @@ function ContactPage() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg text-foreground">Phone</h3>
-                        <p className="text-muted-foreground mt-1">6375858804</p>
+                        <p className="text-muted-foreground mt-1">9602338804</p>
                       </div>
                     </div>
                     
@@ -83,7 +83,7 @@ function ContactPage() {
                   <h3 className="font-bold text-lg mb-2">Instant Support</h3>
                   <p className="opacity-90 mb-6 text-sm">Need immediate assistance? Reach out to us directly on WhatsApp.</p>
                   <a 
-                    href="https://wa.me/6375858804" 
+                    href="https://wa.me/9602338804" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center w-full gap-2 bg-[#25D366] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#20bd5a] transition-colors"
