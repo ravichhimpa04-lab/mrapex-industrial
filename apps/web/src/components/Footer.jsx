@@ -57,7 +57,7 @@ function Footer() {
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-5 h-5 flex-shrink-0 opacity-80" />
-                <span className="text-sm opacity-90">6375858804</span>
+                <span className="text-sm opacity-90">9602338804</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-5 h-5 flex-shrink-0 opacity-80" />
@@ -65,7 +65,7 @@ function Footer() {
               </li>
               <li className="flex items-center gap-3 pt-2">
                 <a 
-                  href="https://wa.me/6375858804" 
+                  href="https://wa.me/9602338804" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm font-medium bg-[#25D366] text-white px-4 py-2 rounded-full hover:bg-[#20bd5a] transition-colors"
@@ -80,7 +80,7 @@ function Footer() {
 
         <div className="border-t border-primary-foreground/20 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm opacity-80">
-            © {currentYear} MRAPEX. All rights reserved.
+            © {currentYear} MR Apex Industrial Components. All rights reserved.
           </p>
           <div className="flex gap-6">
             <Link to="#" className="text-sm opacity-80 hover:opacity-100 transition-opacity duration-200">
