@@ -2,7 +2,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
-import { MapPin, Phone, Mail, MessageCircle } from 'lucide-react';
+import { MapPin, Mail, MessageCircle } from 'lucide-react';
 import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
 import RFQForm from '@/components/RFQForm.jsx';
@@ -54,12 +54,6 @@ function ContactPage() {
                       <div>
                         <h3 className="font-semibold text-lg text-foreground">MR Apex Industrial Components</h3>
                         <p className="text-muted-foreground mt-1">Jaipur, Rajasthan<br />India</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Phone className="w-6 h-6 text-primary" />
                       </div>
                     </div>
                     

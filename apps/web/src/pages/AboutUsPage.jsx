@@ -97,11 +97,6 @@ function AboutUsPage() {
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Phone className="w-6 h-6" />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center flex-shrink-0">
                       <Mail className="w-6 h-6" />
                     </div>
                     <div>
