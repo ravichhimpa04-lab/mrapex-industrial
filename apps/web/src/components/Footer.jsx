@@ -12,7 +12,7 @@ function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           <div className="space-y-4">
             <span className="text-3xl font-extrabold tracking-tight block">
-              MRAPEX
+              MR Apex Industrial Components
             </span>
             <p className="text-sm opacity-90 leading-relaxed max-w-xs">
               Your trusted partner for high-quality industrial components, MRO supplies, and custom engineering products across India.
