@@ -21,8 +21,8 @@ function AboutUsPage() {
   return (
     <>
       <Helmet>
-        <title>About Us - MRAPEX</title>
-        <meta name="description" content="MRAPEX is an industrial sourcing and supply company helping businesses procure industrial components through a reliable supplier network." />
+        <title>About Us - MR Apex Industrial Components</title>
+        <meta name="description" content="MR Apex Industrial Components is an industrial sourcing and supply company helping businesses procure industrial components through a reliable supplier network." />
       </Helmet>
 
       <Header />
@@ -41,7 +41,7 @@ function AboutUsPage() {
                 About MRAPEX
               </h1>
               <p className="text-lg md:text-xl text-white/90 leading-relaxed">
-                MRAPEX is an industrial sourcing and supply company helping businesses procure industrial components, MRO supplies, electrical products and custom engineering items through a reliable supplier network. We focus on quality, competitive pricing and fast response support.
+                MR Apex Industrial Components is an industrial sourcing and supply company helping businesses procure industrial components, MRO supplies, electrical products and custom engineering items through a reliable supplier network. We focus on quality, competitive pricing and fast response support.
               </p>
             </motion.div>
           </div>
@@ -51,7 +51,7 @@ function AboutUsPage() {
         <section className="section-padding bg-muted">
           <div className="container-custom">
             <div className="text-center max-w-3xl mx-auto mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">Why Choose MRAPEX</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">Why Choose MR Apex</h2>
               <p className="text-muted-foreground text-lg">Our commitment to excellence sets us apart in the industrial supply chain.</p>
             </div>
             
