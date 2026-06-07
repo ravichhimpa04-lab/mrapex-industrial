@@ -1,51 +1,154 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { Wrench, Cog, Droplets, Gauge, Package, Settings, Truck } from 'lucide-react';
+import {
+  Truck,
+  Settings,
+  Cog,
+  Droplets,
+  Gauge,
+  Wrench,
+  Package,
+  MessageCircle,
+  ArrowLeft,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
 
 function ProductsPage() {
-  const products = [
+  const whatsappNumber = '919602338804';
+  const [selectedCategory, setSelectedCategory] = useState(null);
+
+  const categories = [
     {
-      icon: Truck,
       name: 'Volvo Parts',
-      description: 'Volvo machinery parts, replacement components, engine parts, hydraulic parts, electrical parts and industrial spares.',
+      icon: Truck,
+      description: 'Volvo machinery parts, engine parts, hydraulic parts and replacement spares.',
+      items: [
+        {
+          name: 'Volvo Hydraulic Pump',
+          partNo: 'VOL-PMP-001',
+          image: 'https://via.placeholder.com/500x350?text=Volvo+Hydraulic+Pump',
+        },
+        {
+          name: 'Volvo Engine Sensor',
+          partNo: 'VOL-SEN-002',
+          image: 'https://via.placeholder.com/500x350?text=Volvo+Engine+Sensor',
+        },
+        {
+          name: 'Volvo Seal Kit',
+          partNo: 'VOL-SEAL-003',
+          image: 'https://via.placeholder.com/500x350?text=Volvo+Seal+Kit',
+        },
+      ],
     },
     {
-      icon: Settings,
       name: 'Fittings',
-      description: 'Hydraulic fittings, pneumatic fittings, hose fittings, tube fittings and industrial connector solutions.',
+      icon: Settings,
+      description: 'Hydraulic fittings, hose fittings, pneumatic fittings and tube fittings.',
+      items: [
+        {
+          name: 'Hydraulic Hose Fitting',
+          partNo: 'FIT-HYD-001',
+          image: 'https://via.placeholder.com/500x350?text=Hydraulic+Fitting',
+        },
+        {
+          name: 'Elbow Fitting',
+          partNo: 'FIT-ELB-002',
+          image: 'https://via.placeholder.com/500x350?text=Elbow+Fitting',
+        },
+      ],
     },
     {
-      icon: Cog,
       name: 'Couplings',
-      description: 'Quick release couplings, hydraulic couplings, pneumatic couplings and industrial coupling solutions.',
+      icon: Cog,
+      description: 'Quick release couplings, hydraulic couplings and industrial couplings.',
+      items: [
+        {
+          name: 'Quick Release Coupling',
+          partNo: 'CPL-QRC-001',
+          image: 'https://via.placeholder.com/500x350?text=Quick+Release+Coupling',
+        },
+        {
+          name: 'Hydraulic Coupling',
+          partNo: 'CPL-HYD-002',
+          image: 'https://via.placeholder.com/500x350?text=Hydraulic+Coupling',
+        },
+      ],
     },
     {
-      icon: Droplets,
       name: 'Pumps',
-      description: 'Hydraulic pumps, gear pumps, piston pumps, vane pumps and other industrial pump solutions.',
+      icon: Droplets,
+      description: 'Hydraulic pumps, gear pumps, piston pumps and industrial pump solutions.',
+      items: [
+        {
+          name: 'Gear Pump',
+          partNo: 'PMP-GEAR-001',
+          image: 'https://via.placeholder.com/500x350?text=Gear+Pump',
+        },
+        {
+          name: 'Hydraulic Pump',
+          partNo: 'PMP-HYD-002',
+          image: 'https://via.placeholder.com/500x350?text=Hydraulic+Pump',
+        },
+      ],
     },
     {
-      icon: Gauge,
       name: 'Valves',
-      description: 'Solenoid valves, directional control valves, pressure valves, flow control valves and hydraulic valves.',
+      icon: Gauge,
+      description: 'Solenoid valves, pressure valves, flow control valves and directional valves.',
+      items: [
+        {
+          name: 'Solenoid Valve',
+          partNo: 'VLV-SOL-001',
+          image: 'https://via.placeholder.com/500x350?text=Solenoid+Valve',
+        },
+        {
+          name: 'Directional Control Valve',
+          partNo: 'VLV-DCV-002',
+          image: 'https://via.placeholder.com/500x350?text=Directional+Control+Valve',
+        },
+      ],
     },
     {
-      icon: Wrench,
       name: 'MSV Spare',
-      description: 'MSV spare parts, seal kits, repair kits, replacement components and machinery maintenance items.',
+      icon: Wrench,
+      description: 'MSV spare parts, seal kits, repair kits and machinery replacement items.',
+      items: [
+        {
+          name: 'MSV Spare Kit',
+          partNo: 'MSV-KIT-001',
+          image: 'https://via.placeholder.com/500x350?text=MSV+Spare+Kit',
+        },
+        {
+          name: 'MSV Repair Kit',
+          partNo: 'MSV-REP-002',
+          image: 'https://via.placeholder.com/500x350?text=MSV+Repair+Kit',
+        },
+      ],
     },
     {
-      icon: Package,
       name: 'Other Machinery Items',
-      description: 'Bearings, fasteners, filters, sensors, electrical components and other MRO machinery supplies.',
+      icon: Package,
+      description: 'Bearings, fasteners, filters, sensors and other MRO machinery supplies.',
+      items: [
+        {
+          name: 'Industrial Bearing',
+          partNo: 'OTH-BRG-001',
+          image: 'https://via.placeholder.com/500x350?text=Industrial+Bearing',
+        },
+        {
+          name: 'Machinery Filter',
+          partNo: 'OTH-FLT-002',
+          image: 'https://via.placeholder.com/500x350?text=Machinery+Filter',
+        },
+      ],
     },
   ];
+
+  const currentCategory = categories.find((cat) => cat.name === selectedCategory);
 
   return (
     <>
@@ -53,7 +156,7 @@ function ProductsPage() {
         <title>Products - MR Apex Industrial Components</title>
         <meta
           name="description"
-          content="Volvo Parts, Fittings, Couplings, Pumps, Valves, MSV Spare and Other Machinery Items from MR Apex Industrial Components."
+          content="Browse Volvo Parts, Fittings, Couplings, Pumps, Valves, MSV Spare and Other Machinery Items from MR Apex Industrial Components."
         />
       </Helmet>
 
@@ -62,68 +165,122 @@ function ProductsPage() {
       <main>
         <section className="py-20 bg-primary text-primary-foreground">
           <div className="container-custom text-center max-w-4xl mx-auto">
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-4xl md:text-5xl font-bold mb-6 tracking-tight"
-            >
-              Product Categories
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-lg md:text-xl opacity-90 leading-relaxed"
-            >
-              We source and supply industrial components, machinery parts and MRO supplies through a reliable supplier network.
-            </motion.p>
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              {currentCategory ? currentCategory.name : 'Our Product Categories'}
+            </h1>
+            <p className="text-lg md:text-xl opacity-90 leading-relaxed">
+              {currentCategory
+                ? currentCategory.description
+                : 'Select a category to view available products, part numbers and enquiry options.'}
+            </p>
           </div>
         </section>
 
         <section className="section-padding bg-muted/50">
           <div className="container-custom">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {products.map((product, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="bg-card rounded-2xl p-8 shadow-sm border flex flex-col h-full"
+            {!currentCategory ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {categories.map((category, index) => {
+                  const Icon = category.icon;
+
+                  return (
+                    <motion.button
+                      key={category.name}
+                      type="button"
+                      onClick={() => setSelectedCategory(category.name)}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: index * 0.08 }}
+                      className="bg-card rounded-2xl p-8 shadow-sm border text-left hover:shadow-lg hover:-translate-y-1 transition-all"
+                    >
+                      <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+                        <Icon className="w-8 h-8 text-primary" />
+                      </div>
+
+                      <h2 className="text-2xl font-bold mb-4 text-foreground">
+                        {category.name}
+                      </h2>
+
+                      <p className="text-muted-foreground leading-relaxed mb-6">
+                        {category.description}
+                      </p>
+
+                      <span className="text-primary font-semibold">
+                        View Products →
+                      </span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedCategory(null)}
+                  className="mb-8"
                 >
-                  <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
-                    <product.icon className="w-8 h-8 text-primary" />
-                  </div>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Categories
+                </Button>
 
-                  <h2 className="text-2xl font-bold mb-4 text-foreground">
-                    {product.name}
-                  </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {currentCategory.items.map((item, index) => {
+                    const message = `Hello MR Apex Industrial Components, I need quotation for ${item.name}. Category: ${currentCategory.name}. Part No: ${item.partNo}`;
 
-                  <p className="text-muted-foreground leading-relaxed mb-8 flex-grow">
-                    {product.description}
-                  </p>
+                    return (
+                      <motion.div
+                        key={item.partNo}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: index * 0.08 }}
+                        className="bg-card rounded-2xl overflow-hidden shadow-sm border flex flex-col h-full"
+                      >
+                        <div className="h-56 bg-white border-b overflow-hidden">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-contain p-4"
+                          />
+                        </div>
 
-                  <Button asChild className="w-full mt-auto">
-                    <Link to="/contact">Product Enquiry</Link>
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
+                        <div className="p-6 flex flex-col flex-grow">
+                          <p className="text-sm font-semibold text-primary mb-2">
+                            {currentCategory.name}
+                          </p>
 
-        <section className="py-16 bg-accent text-accent-foreground">
-          <div className="container-custom text-center">
-            <h2 className="text-2xl md:text-3xl font-bold mb-6">
-              Need a specific industrial component?
-            </h2>
-            <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-              Share your requirement, part number, sample image or product details. Our team will help you source the right item.
-            </p>
-            <Button size="lg" variant="secondary" asChild>
-              <Link to="/contact">Request a Quote</Link>
-            </Button>
+                          <h2 className="text-xl font-bold text-foreground mb-3">
+                            {item.name}
+                          </h2>
+
+                          <p className="text-sm text-muted-foreground mb-6">
+                            Part No:{' '}
+                            <span className="font-semibold text-foreground">
+                              {item.partNo}
+                            </span>
+                          </p>
+
+                          <Button
+                            asChild
+                            className="w-full mt-auto bg-[#25D366] hover:bg-[#20bd5a] text-white"
+                          >
+                            <a
+                              href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <MessageCircle className="w-4 h-4 mr-2" />
+                              Enquire on WhatsApp
+                            </a>
+                          </Button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </section>
       </main>
