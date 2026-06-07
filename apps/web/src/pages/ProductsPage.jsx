@@ -261,24 +261,25 @@ function ProductsPage() {
                           </h2>
 
                           <p className="text-sm text-muted-foreground mb-6">
-                            Part No:{' '}
-                            <span className="font-semibold text-foreground">
-                              <p className="text-sm text-muted-foreground">
+<div className="text-sm text-muted-foreground mb-6">
   {item.partNo && (
-    <>
-      <span className="font-semibold">Part No:</span> {item.partNo}
-    </>
+    <p>
+      <span className="font-semibold text-foreground">Part No:</span> {item.partNo}
+    </p>
   )}
-  
+
   {item.model && (
-    <>
-      <br />
-      <span className="font-semibold">Model No:</span> {item.model}
-    </>
+    <p>
+      <span className="font-semibold text-foreground">Model No:</span> {item.model}
+    </p>
   )}
-</p>
-                            </span>
-                          </p>
+
+  {item.Function && (
+    <p>
+      <span className="font-semibold text-foreground">Function:</span> {item.Function}
+    </p>
+  )}
+</div>
 
                           <Button
                             asChild
