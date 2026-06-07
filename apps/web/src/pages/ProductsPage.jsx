@@ -43,7 +43,7 @@ function ProductsPage() {
           image: 'https://via.placeholder.com/500x350?text=Volvo+Seal+Kit',
         },
         {
-          name: 'Bosch DEF Supply Modu',
+          name: 'Bosch DEF Supply Module',
           model: '044404228K',
           Function: 'Adblue pressure & delivery control',
           image: '/images/pump-unit-scr.jpg',
@@ -263,7 +263,20 @@ function ProductsPage() {
                           <p className="text-sm text-muted-foreground mb-6">
                             Part No:{' '}
                             <span className="font-semibold text-foreground">
-                              {item.partNo}
+                              <p className="text-sm text-muted-foreground">
+  {item.partNo && (
+    <>
+      <span className="font-semibold">Part No:</span> {item.partNo}
+    </>
+  )}
+  
+  {item.model && (
+    <>
+      <br />
+      <span className="font-semibold">Model No:</span> {item.model}
+    </>
+  )}
+</p>
                             </span>
                           </p>
 
