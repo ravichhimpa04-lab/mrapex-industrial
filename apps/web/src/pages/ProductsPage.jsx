@@ -44,9 +44,9 @@ function ProductsPage() {
         },
         {
           name: 'Bosch DEF Supply Modu',
-          model : '044404228K',
+          model: '044404228K',
           Function: 'Adblue pressure & delivery control',
-          image: '/images/your-image-name.jpg',
+          image: '/images/pump-unit-scr.jpg',
         },
       ],
     },
