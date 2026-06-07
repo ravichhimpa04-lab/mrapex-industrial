@@ -42,6 +42,12 @@ function ProductsPage() {
           partNo: 'VOL-SEAL-003',
           image: 'https://via.placeholder.com/500x350?text=Volvo+Seal+Kit',
         },
+        {
+          name: 'Bosch DEF Supply Modu',
+          model : '044404228K',
+          Function: 'Adblue pressure & delivery control',
+          image: '/images/your-image-name.jpg',
+        },
       ],
     },
     {
