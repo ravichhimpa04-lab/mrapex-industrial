@@ -45,7 +45,7 @@ function ProductsPage() {
         {
           name: 'Bosch DEF Supply Module',
           model: '044404228K',
-          Function: 'Adblue pressure & delivery control',
+          function: 'Adblue pressure & delivery control',
           image: '/images/pump-unit-scr.jpg',
         },
       ],
@@ -156,6 +156,18 @@ function ProductsPage() {
 
   const currentCategory = categories.find((cat) => cat.name === selectedCategory);
 
+  const getProductKey = (item) => item.partNo || item.model || item.name;
+
+  const getWhatsappMessage = (item, categoryName) => {
+    const details = [];
+
+    if (item.partNo) details.push(`Part No: ${item.partNo}`);
+    if (item.model) details.push(`Model No: ${item.model}`);
+    if (item.function) details.push(`Function: ${item.function}`);
+
+    return `Hello MR Apex Industrial Components, I need quotation for ${item.name}. Category: ${categoryName}.${details.length ? ` ${details.join('. ')}` : ''}`;
+  };
+
   return (
     <>
       <Helmet>
@@ -174,6 +186,7 @@ function ProductsPage() {
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
               {currentCategory ? currentCategory.name : 'Our Product Categories'}
             </h1>
+
             <p className="text-lg md:text-xl opacity-90 leading-relaxed">
               {currentCategory
                 ? currentCategory.description
@@ -232,11 +245,11 @@ function ProductsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {currentCategory.items.map((item, index) => {
-                    const message = `Hello MR Apex Industrial Components, I need quotation for ${item.name}. Category: ${currentCategory.name}. Part No: ${item.partNo}`;
+                    const message = getWhatsappMessage(item, currentCategory.name);
 
                     return (
                       <motion.div
-                        key={item.partNo}
+                        key={getProductKey(item)}
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -260,26 +273,28 @@ function ProductsPage() {
                             {item.name}
                           </h2>
 
-                          <p className="text-sm text-muted-foreground mb-6">
-<div className="text-sm text-muted-foreground mb-6">
-  {item.partNo && (
-    <p>
-      <span className="font-semibold text-foreground">Part No:</span> {item.partNo}
-    </p>
-  )}
+                          <div className="text-sm text-muted-foreground mb-6">
+                            {item.partNo && (
+                              <p>
+                                <span className="font-semibold text-foreground">Part No:</span>{' '}
+                                {item.partNo}
+                              </p>
+                            )}
 
-  {item.model && (
-    <p>
-      <span className="font-semibold text-foreground">Model No:</span> {item.model}
-    </p>
-  )}
+                            {item.model && (
+                              <p>
+                                <span className="font-semibold text-foreground">Model No:</span>{' '}
+                                {item.model}
+                              </p>
+                            )}
 
-  {item.Function && (
-    <p>
-      <span className="font-semibold text-foreground">Function:</span> {item.Function}
-    </p>
-  )}
-</div>
+                            {item.function && (
+                              <p>
+                                <span className="font-semibold text-foreground">Function:</span>{' '}
+                                {item.function}
+                              </p>
+                            )}
+                          </div>
 
                           <Button
                             asChild
