@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import {
@@ -12,160 +12,168 @@ import {
   Package,
   MessageCircle,
   ArrowLeft,
+  Send,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
 
+const API_URL =
+  'https://script.google.com/macros/s/AKfycbzlh-k0zctycBtTQLYLvvRk7LZC4uvM2XE8CKSts1DxF_1A8HIcs56S66qon_D1X6Yj/exec';
+
+const whatsappNumber = '919602338804';
+
+const categoryMeta = {
+  'Volvo Parts': {
+    icon: Truck,
+    description:
+      'Volvo machinery parts, engine parts, hydraulic parts and replacement spares.',
+  },
+  Fittings: {
+    icon: Settings,
+    description:
+      'Hydraulic fittings, hose fittings, pneumatic fittings and tube fittings.',
+  },
+  Couplings: {
+    icon: Cog,
+    description:
+      'Quick release couplings, hydraulic couplings and industrial couplings.',
+  },
+  Pumps: {
+    icon: Droplets,
+    description:
+      'Hydraulic pumps, gear pumps, piston pumps and industrial pump solutions.',
+  },
+  Valves: {
+    icon: Gauge,
+    description:
+      'Solenoid valves, pressure valves, flow control valves and directional valves.',
+  },
+  'MSV Spare': {
+    icon: Wrench,
+    description:
+      'MSV spare parts, seal kits, repair kits and machinery replacement items.',
+  },
+  'Other Machinery Items': {
+    icon: Package,
+    description:
+      'Bearings, fasteners, filters, sensors and other MRO machinery supplies.',
+  },
+};
+
 function ProductsPage() {
-  const whatsappNumber = '919602338804';
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [sending, setSending] = useState(false);
 
-  const categories = [
-    {
-      name: 'Volvo Parts',
-      icon: Truck,
-      description: 'Volvo machinery parts, engine parts, hydraulic parts and replacement spares.',
-      items: [
-        {
-          name: 'Volvo Hydraulic Pump',
-          partNo: 'VOL-PMP-001',
-          image: 'https://via.placeholder.com/500x350?text=Volvo+Hydraulic+Pump',
-        },
-        {
-          name: 'Volvo Engine Sensor',
-          partNo: 'VOL-SEN-002',
-          image: 'https://via.placeholder.com/500x350?text=Volvo+Engine+Sensor',
-        },
-        {
-          name: 'Volvo Seal Kit',
-          partNo: 'VOL-SEAL-003',
-          image: 'https://via.placeholder.com/500x350?text=Volvo+Seal+Kit',
-        },
-        {
-          name: 'Bosch DEF Supply Module',
-          model: '044404228K',
-          function: 'Adblue pressure & delivery control',
-          image: '/images/pump-unit-scr.jpg',
-        },
-      ],
-    },
-    {
-      name: 'Fittings',
-      icon: Settings,
-      description: 'Hydraulic fittings, hose fittings, pneumatic fittings and tube fittings.',
-      items: [
-        {
-          name: 'Hydraulic Hose Fitting',
-          partNo: 'FIT-HYD-001',
-          image: 'https://via.placeholder.com/500x350?text=Hydraulic+Fitting',
-        },
-        {
-          name: 'Elbow Fitting',
-          partNo: 'FIT-ELB-002',
-          image: 'https://via.placeholder.com/500x350?text=Elbow+Fitting',
-        },
-      ],
-    },
-    {
-      name: 'Couplings',
-      icon: Cog,
-      description: 'Quick release couplings, hydraulic couplings and industrial couplings.',
-      items: [
-        {
-          name: 'Quick Release Coupling',
-          partNo: 'CPL-QRC-001',
-          image: 'https://via.placeholder.com/500x350?text=Quick+Release+Coupling',
-        },
-        {
-          name: 'Hydraulic Coupling',
-          partNo: 'CPL-HYD-002',
-          image: 'https://via.placeholder.com/500x350?text=Hydraulic+Coupling',
-        },
-      ],
-    },
-    {
-      name: 'Pumps',
-      icon: Droplets,
-      description: 'Hydraulic pumps, gear pumps, piston pumps and industrial pump solutions.',
-      items: [
-        {
-          name: 'Gear Pump',
-          partNo: 'PMP-GEAR-001',
-          image: 'https://via.placeholder.com/500x350?text=Gear+Pump',
-        },
-        {
-          name: 'Hydraulic Pump',
-          partNo: 'PMP-HYD-002',
-          image: 'https://via.placeholder.com/500x350?text=Hydraulic+Pump',
-        },
-      ],
-    },
-    {
-      name: 'Valves',
-      icon: Gauge,
-      description: 'Solenoid valves, pressure valves, flow control valves and directional valves.',
-      items: [
-        {
-          name: 'Solenoid Valve',
-          partNo: 'VLV-SOL-001',
-          image: 'https://via.placeholder.com/500x350?text=Solenoid+Valve',
-        },
-        {
-          name: 'Directional Control Valve',
-          partNo: 'VLV-DCV-002',
-          image: 'https://via.placeholder.com/500x350?text=Directional+Control+Valve',
-        },
-      ],
-    },
-    {
-      name: 'MSV Spare',
-      icon: Wrench,
-      description: 'MSV spare parts, seal kits, repair kits and machinery replacement items.',
-      items: [
-        {
-          name: 'MSV Spare Kit',
-          partNo: 'MSV-KIT-001',
-          image: 'https://via.placeholder.com/500x350?text=MSV+Spare+Kit',
-        },
-        {
-          name: 'MSV Repair Kit',
-          partNo: 'MSV-REP-002',
-          image: 'https://via.placeholder.com/500x350?text=MSV+Repair+Kit',
-        },
-      ],
-    },
-    {
-      name: 'Other Machinery Items',
-      icon: Package,
-      description: 'Bearings, fasteners, filters, sensors and other MRO machinery supplies.',
-      items: [
-        {
-          name: 'Industrial Bearing',
-          partNo: 'OTH-BRG-001',
-          image: 'https://via.placeholder.com/500x350?text=Industrial+Bearing',
-        },
-        {
-          name: 'Machinery Filter',
-          partNo: 'OTH-FLT-002',
-          image: 'https://via.placeholder.com/500x350?text=Machinery+Filter',
-        },
-      ],
-    },
-  ];
+  const [form, setForm] = useState({
+    name: '',
+    mobile: '',
+    email: '',
+    quantity: '',
+    message: '',
+  });
 
-  const currentCategory = categories.find((cat) => cat.name === selectedCategory);
+  useEffect(() => {
+    fetch(API_URL)
+      .then((res) => res.json())
+      .then((data) => {
+        setProducts(data.products || []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setProducts([]);
+        setLoading(false);
+      });
+  }, []);
 
-  const getProductKey = (item) => item.partNo || item.model || item.name;
+  const categories = useMemo(() => {
+    const grouped = {};
+
+    products.forEach((product) => {
+      if (!product.category) return;
+
+      if (!grouped[product.category]) {
+        grouped[product.category] = [];
+      }
+
+      grouped[product.category].push(product);
+    });
+
+    return Object.keys(grouped).map((name) => ({
+      name,
+      icon: categoryMeta[name]?.icon || Package,
+      description:
+        categoryMeta[name]?.description ||
+        'Industrial components, machinery parts and MRO supplies.',
+      items: grouped[name],
+    }));
+  }, [products]);
+
+  const currentCategory = categories.find(
+    (cat) => cat.name === selectedCategory
+  );
 
   const getWhatsappMessage = (item, categoryName) => {
     const details = [];
 
-    if (item.partNo) details.push(`Part No: ${item.partNo}`);
-    if (item.model) details.push(`Model No: ${item.model}`);
-    if (item.function) details.push(`Function: ${item.function}`);
+    if (item.partNo) details.push(`Part Number: ${item.partNo}`);
+    if (item.make) details.push(`Make: ${item.make}`);
 
-    return `Hello MR Apex Industrial Components, I need quotation for ${item.name}. Category: ${categoryName}.${details.length ? ` ${details.join('. ')}` : ''}`;
+    return `Hello MR Apex Industrial Components, I need quotation for ${
+      item.name
+    }. Category: ${categoryName}.${
+      details.length ? ` ${details.join('. ')}` : ''
+    }`;
+  };
+
+  const openQuoteForm = (item, categoryName) => {
+    setSelectedProduct({ ...item, category: categoryName });
+    setForm({
+      name: '',
+      mobile: '',
+      email: '',
+      quantity: '',
+      message: '',
+    });
+  };
+
+  const submitEnquiry = async (e) => {
+    e.preventDefault();
+
+    if (!selectedProduct) return;
+
+    setSending(true);
+
+    const payload = {
+      name: form.name,
+      mobile: form.mobile,
+      email: form.email,
+      quantity: form.quantity,
+      message: form.message,
+      productName: selectedProduct.name,
+      partNo: selectedProduct.partNo || '',
+      category: selectedProduct.category,
+      make: selectedProduct.make || '',
+    };
+
+    try {
+      await fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify(payload),
+      });
+
+      alert('Enquiry submitted successfully.');
+      setSelectedProduct(null);
+    } catch (error) {
+      alert('Enquiry submit nahi hui. Please dobara try karein.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -184,7 +192,9 @@ function ProductsPage() {
         <section className="py-20 bg-primary text-primary-foreground">
           <div className="container-custom text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              {currentCategory ? currentCategory.name : 'Our Product Categories'}
+              {currentCategory
+                ? currentCategory.name
+                : 'Our Product Categories'}
             </h1>
 
             <p className="text-lg md:text-xl opacity-90 leading-relaxed">
@@ -197,7 +207,16 @@ function ProductsPage() {
 
         <section className="section-padding bg-muted/50">
           <div className="container-custom">
-            {!currentCategory ? (
+            {loading ? (
+              <div className="text-center text-muted-foreground">
+                Loading products...
+              </div>
+            ) : categories.length === 0 ? (
+              <div className="text-center text-muted-foreground">
+                No products found. Please add products in Google Sheet with
+                Status Active.
+              </div>
+            ) : !currentCategory ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {categories.map((category, index) => {
                   const Icon = category.icon;
@@ -221,8 +240,12 @@ function ProductsPage() {
                         {category.name}
                       </h2>
 
-                      <p className="text-muted-foreground leading-relaxed mb-6">
+                      <p className="text-muted-foreground leading-relaxed mb-3">
                         {category.description}
+                      </p>
+
+                      <p className="text-sm text-muted-foreground mb-6">
+                        {category.items.length} products available
                       </p>
 
                       <span className="text-primary font-semibold">
@@ -245,11 +268,14 @@ function ProductsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {currentCategory.items.map((item, index) => {
-                    const message = getWhatsappMessage(item, currentCategory.name);
+                    const message = getWhatsappMessage(
+                      item,
+                      currentCategory.name
+                    );
 
                     return (
                       <motion.div
-                        key={getProductKey(item)}
+                        key={`${item.name}-${item.partNo}-${index}`}
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -258,7 +284,10 @@ function ProductsPage() {
                       >
                         <div className="h-56 bg-white border-b overflow-hidden">
                           <img
-                            src={item.image}
+                            src={
+                              item.image ||
+                              'https://via.placeholder.com/500x350?text=Product+Image'
+                            }
                             alt={item.name}
                             className="w-full h-full object-contain p-4"
                           />
@@ -273,42 +302,58 @@ function ProductsPage() {
                             {item.name}
                           </h2>
 
-                          <div className="text-sm text-muted-foreground mb-6">
+                          <div className="text-sm text-muted-foreground mb-6 space-y-1">
                             {item.partNo && (
                               <p>
-                                <span className="font-semibold text-foreground">Part No:</span>{' '}
+                                <span className="font-semibold text-foreground">
+                                  Part Number:
+                                </span>{' '}
                                 {item.partNo}
                               </p>
                             )}
 
-                            {item.model && (
+                            {item.make && (
                               <p>
-                                <span className="font-semibold text-foreground">Model No:</span>{' '}
-                                {item.model}
+                                <span className="font-semibold text-foreground">
+                                  Make:
+                                </span>{' '}
+                                {item.make}
                               </p>
                             )}
 
-                            {item.function && (
-                              <p>
-                                <span className="font-semibold text-foreground">Function:</span>{' '}
-                                {item.function}
-                              </p>
+                            {item.description && (
+                              <p className="pt-2">{item.description}</p>
                             )}
                           </div>
 
-                          <Button
-                            asChild
-                            className="w-full mt-auto bg-[#25D366] hover:bg-[#20bd5a] text-white"
-                          >
-                            <a
-                              href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                          <div className="mt-auto space-y-3">
+                            <Button
+                              asChild
+                              className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white"
                             >
-                              <MessageCircle className="w-4 h-4 mr-2" />
-                              Enquire on WhatsApp
-                            </a>
-                          </Button>
+                              <a
+                                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+                                  message
+                                )}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <MessageCircle className="w-4 h-4 mr-2" />
+                                Enquire on WhatsApp
+                              </a>
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              className="w-full"
+                              onClick={() =>
+                                openQuoteForm(item, currentCategory.name)
+                              }
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Request Quote
+                            </Button>
+                          </div>
                         </div>
                       </motion.div>
                     );
@@ -319,6 +364,80 @@ function ProductsPage() {
           </div>
         </section>
       </main>
+
+      {selectedProduct && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 relative">
+            <button
+              type="button"
+              onClick={() => setSelectedProduct(null)}
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-800"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h2 className="text-2xl font-bold mb-2">Request Quote</h2>
+
+            <p className="text-sm text-gray-600 mb-5">
+              {selectedProduct.name}
+              {selectedProduct.partNo && ` | ${selectedProduct.partNo}`}
+            </p>
+
+            <form onSubmit={submitEnquiry} className="space-y-4">
+              <input
+                required
+                placeholder="Your Name"
+                value={form.name}
+                onChange={(e) =>
+                  setForm({ ...form, name: e.target.value })
+                }
+                className="w-full border rounded-lg px-4 py-3"
+              />
+
+              <input
+                required
+                placeholder="Mobile / WhatsApp Number"
+                value={form.mobile}
+                onChange={(e) =>
+                  setForm({ ...form, mobile: e.target.value })
+                }
+                className="w-full border rounded-lg px-4 py-3"
+              />
+
+              <input
+                placeholder="Email Optional"
+                value={form.email}
+                onChange={(e) =>
+                  setForm({ ...form, email: e.target.value })
+                }
+                className="w-full border rounded-lg px-4 py-3"
+              />
+
+              <input
+                placeholder="Quantity"
+                value={form.quantity}
+                onChange={(e) =>
+                  setForm({ ...form, quantity: e.target.value })
+                }
+                className="w-full border rounded-lg px-4 py-3"
+              />
+
+              <textarea
+                placeholder="Message / Requirement"
+                value={form.message}
+                onChange={(e) =>
+                  setForm({ ...form, message: e.target.value })
+                }
+                className="w-full border rounded-lg px-4 py-3 min-h-[100px]"
+              />
+
+              <Button type="submit" className="w-full" disabled={sending}>
+                {sending ? 'Submitting...' : 'Submit Enquiry'}
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </>
