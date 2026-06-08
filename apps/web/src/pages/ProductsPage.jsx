@@ -78,7 +78,8 @@ function ProductsPage() {
   });
 
   useEffect(() => {
-    fetch(API_URL)
+  console.log('MR APEX API CALL STARTED');
+  fetch(API_URL + '?t=' + Date.now())
       .then((res) => res.json())
       .then((data) => {
         setProducts(data.products || []);
