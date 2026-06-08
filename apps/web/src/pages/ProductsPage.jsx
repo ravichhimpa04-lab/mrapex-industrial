@@ -79,17 +79,24 @@ function ProductsPage() {
 
   useEffect(() => {
   console.log('MR APEX API CALL STARTED');
+  console.log('API URL =', API_URL);
+
   fetch(API_URL + '?t=' + Date.now())
-      .then((res) => res.json())
-      .then((data) => {
-        setProducts(data.products || []);
-        setLoading(false);
-      })
-      .catch(() => {
-        setProducts([]);
-        setLoading(false);
-      });
-  }, []);
+    .then((res) => {
+      console.log('API STATUS =', res.status);
+      return res.json();
+    })
+    .then((data) => {
+      console.log('DATA RECEIVED =', data);
+      setProducts(data.products || []);
+      setLoading(false);
+    })
+    .catch((error) => {
+      console.log('API ERROR =', error);
+      setProducts([]);
+      setLoading(false);
+    });
+}, []);
 
   const categories = useMemo(() => {
     const grouped = {};
