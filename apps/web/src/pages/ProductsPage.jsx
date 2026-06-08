@@ -20,7 +20,7 @@ import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
 
 const API_URL =
-  'https://script.google.com/macros/s/AKfycbyQ3jhuxhwtVeiwfSAZvssvOrwH-Y7sCBbIxEx2mNxnUA7GO6lmZGtibp3dh1B5cg9T/exec;
+  'https://script.google.com/macros/s/AKfycbyQ3jhuxhwtVeiwfSAZvssvOrwH-Y7sCBbIxEx2mNxnUA7GO6lmZGtibp3dh1B5cg9T/exec';
 
 const whatsappNumber = '919602338804';
 
