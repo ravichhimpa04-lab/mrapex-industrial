@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/products",
+      "destination": "/"
+    },
+    {
+      "source": "/about",
+      "destination": "/"
+    },
+    {
+      "source": "/contact",
+      "destination": "/"
+    },
+    {
+      "source": "/industries",
+      "destination": "/"
+    }
+  ]
+}
