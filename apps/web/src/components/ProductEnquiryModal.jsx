@@ -135,6 +135,22 @@ function ProductEnquiryModal({ open, onOpenChange }) {
               <p className="text-sm text-destructive mt-1">{errors.company_name.message}</p>
             )}
           </div>
+          <div>
+            <Label htmlFor="enquiry-company-address" className="text-sm font-medium">
+              Company address *
+            </Label>
+            <Input
+              id="enquiry-company-address"
+              type="text"
+              {...register('company_address')}
+              className="mt-1.5 text-foreground"
+              placeholder="Your company address"
+            />
+            {errors.company_address && (
+              <p className="text-sm text-destructive mt-1">{errors.company_address.message}</p>
+            )}
+          </div>
+          
 
           <div>
             <Label htmlFor="enquiry-product" className="text-sm font-medium">
