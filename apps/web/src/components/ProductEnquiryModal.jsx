@@ -137,11 +137,11 @@ function ProductEnquiryModal({ open, onOpenChange }) {
             )}
           </div>
           <div>
-            <Label htmlFor="enquiry-company-address" className="text-sm font-medium">
+            <Label htmlFor="enquiry-company_address" className="text-sm font-medium">
               Company address *
             </Label>
             <Input
-              id="enquiry-company-address"
+              id="enquiry-company_address"
               type="text"
               {...register('company_address')}
               className="mt-1.5 text-foreground"
