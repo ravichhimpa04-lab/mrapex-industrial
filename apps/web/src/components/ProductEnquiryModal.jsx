@@ -29,6 +29,7 @@ const formSchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Phone number must be at least 10 digits'),
   company_name: z.string().min(2, 'Company name is required'),
+  company_address: z.string().min(2, 'Company address is required'),
   product_interest: z.string().optional(),
   message: z.string().optional(),
 });
