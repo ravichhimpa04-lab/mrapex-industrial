@@ -74,6 +74,7 @@ function ProductsPage() {
     mobile: '',
     email: '',
     company: '',
+    companyAddress: '',
     quantity: '',
     message: '',
   });
@@ -155,6 +156,7 @@ function ProductsPage() {
       mobile: form.mobile,
       email: form.email,
       company: form.company,
+      companyAddress: form.companyAddress,
       quantity: form.quantity,
       message: form.message,
       productName: selectedProduct.name,
