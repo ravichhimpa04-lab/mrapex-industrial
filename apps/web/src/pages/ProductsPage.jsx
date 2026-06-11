@@ -423,6 +423,15 @@ function ProductsPage() {
                 }
                 className="w-full border rounded-lg px-4 py-3"
               />
+              <input
+                placeholder="Company Address"
+                value={form.companyAddress}
+                onChange={(e) =>
+                  setForm({ ...form, companyAddress: e.target.value })
+                }
+                className="w-full border rounded-lg px-4 py-3"
+              />
+
 
               <input
                 placeholder="Quantity"
