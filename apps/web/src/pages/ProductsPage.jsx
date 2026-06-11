@@ -139,6 +139,8 @@ function ProductsPage() {
       name: '',
       mobile: '',
       email: '',
+      company: '',
+      companyAddress: '',
       quantity: '',
       message: '',
     });
