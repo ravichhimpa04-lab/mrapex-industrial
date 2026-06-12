@@ -168,19 +168,21 @@ function ProductsPage() {
     };
 
     try {
-      await fetch(API_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify(payload),
-      });
+  await fetch(API_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8',
+    },
+    body: JSON.stringify(payload),
+  });
 
-      alert('Enquiry submitted successfully.');
-      setSelectedProduct(null);
-    } catch (error) {
-      alert('Enquiry submit nahi hui. Please dobara try karein.');
-    } finally {
-      setSending(false);
-    }
+  alert('Enquiry submitted successfully.');
+  setSelectedProduct(null);
+} catch (error) {
+  console.error('Enquiry error:', error);
+  alert('Enquiry submit nahi hui. Please dobara try karein.');
+}
   };
 
   return (
