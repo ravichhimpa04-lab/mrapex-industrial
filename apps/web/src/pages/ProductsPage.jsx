@@ -74,7 +74,7 @@ function ProductsPage() {
     mobile: '',
     email: '',
     company: '',
-    companyAddress: '',
+    company_address: '',
     quantity: '',
     message: '',
   });
@@ -140,7 +140,7 @@ function ProductsPage() {
       mobile: '',
       email: '',
       company: '',
-      companyAddress: '',
+      company_address: '',
       quantity: '',
       message: '',
     });
@@ -158,7 +158,7 @@ function ProductsPage() {
       mobile: form.mobile,
       email: form.email,
       company: form.company,
-      companyAddress: form.companyAddress,
+      company_address: form.company_address,
       quantity: form.quantity,
       message: form.message,
       productName: selectedProduct.name,
