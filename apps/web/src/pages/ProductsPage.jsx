@@ -429,9 +429,9 @@ function ProductsPage() {
               />
               <input
                 placeholder="Company Address"
-                value={form.companyAddress}
+                value={form.company_address}
                 onChange={(e) =>
-                  setForm({ ...form, companyAddress: e.target.value })
+                  setForm({ ...form, company_address: e.target.value })
                 }
                 className="w-full border rounded-lg px-4 py-3"
               />
