@@ -22,7 +22,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import pb from '@/lib/pocketbaseClient';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -50,7 +49,26 @@ function ProductEnquiryModal({ open, onOpenChange }) {
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
-      await pb.collection('product_enquiries').create(data, { $autoCancel: false });
+      await fetch(
+  'https://script.google.com/macros/s/AKfycbyQ3jhuxhwtVeiwfSAZvssvOrwH-Y7sCBbIxEx2mNxnUA7GO6lmZGtibp3dh1B5cg9T/exec',
+  {
+    method: 'POST',
+    mode: 'no-cors',
+    body: JSON.stringify({
+      name: data.name,
+      mobile: data.phone,
+      email: data.email,
+      company: data.company_name,
+      company_address: data.company_address,
+      productName: data.product_interest || '',
+      partNo: '',
+      category: data.product_interest || '',
+      make: '',
+      quantity: '',
+      message: data.message || '',
+    }),
+  }
+);
       toast.success('Product enquiry submitted successfully');
       reset();
       onOpenChange(false);
