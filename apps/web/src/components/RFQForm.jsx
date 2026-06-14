@@ -71,28 +71,25 @@ export default function RFQForm() {
     }
 
     await fetch(API_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8",
-      },
-      body: JSON.stringify({
-        name: data.name,
-        mobile: data.mobile_number,
-        email: data.email,
-        company: data.company_name,
-        company_address: "",
-        productName: data.product_required,
-        partNo: "",
-        category: "RFQ",
-        make: "",
-        quantity: data.quantity,
-        message: data.message || "",
-        fileName,
-        fileType,
-        fileData,
-      }),
-    });
+  method: "POST",
+  mode: "no-cors",
+  body: JSON.stringify({
+    name: data.name,
+    mobile: data.mobile_number,
+    email: data.email,
+    company: data.company_name,
+    company_address: "",
+    productName: data.product_required,
+    partNo: "",
+    category: "RFQ",
+    make: "",
+    quantity: data.quantity,
+    message: data.message || "",
+    fileName,
+    fileType,
+    fileData,
+  }),
+});
 
     toast.success("RFQ Submitted Successfully", {
       description: "Our team will get back to you shortly with a quotation.",
