@@ -15,6 +15,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxe0bxrj8lMIkRhUJC2AEB_
 const formSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   company_name: z.string().min(2, 'Company name is required'),
+  company_address: z.string().min(5, 'Company address is required'),
   mobile_number: z.string().min(10, 'Valid mobile number is required'),
   email: z.string().email('Valid email is required'),
   product_required: z.string().min(2, 'Product requirement is required'),
@@ -36,6 +37,7 @@ export default function RFQForm() {
     defaultValues: {
       name: '',
       company_name: '',
+      company_address: '',
       mobile_number: '',
       email: '',
       product_required: '',
@@ -101,7 +103,7 @@ export default function RFQForm() {
           mobile: data.mobile_number,
           email: data.email,
           company: data.company_name,
-          company_address: '',
+          company_address: data.company_address,
           productName: data.product_required,
           partNo: '',
           category: 'RFQ',
@@ -147,6 +149,18 @@ export default function RFQForm() {
           <Input id="company_name" {...register('company_name')} placeholder="Acme Corp" className="text-foreground" />
           {errors.company_name && <p className="text-sm text-destructive">{errors.company_name.message}</p>}
         </div>
+        <div className="space-y-2">
+  <Label htmlFor="company_address">Company Address *</Label>
+  <Input
+    id="company_address"
+    {...register('company_address')}
+    placeholder="Full company address"
+    className="text-foreground"
+  />
+  {errors.company_address && (
+    <p className="text-sm text-destructive">{errors.company_address.message}</p>
+  )}
+</div>
 
         <div className="space-y-2">
           <Label htmlFor="mobile_number">Mobile Number *</Label>
