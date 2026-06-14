@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-const API_URL = 'https://script.google.com/macros/s/AKfycbxe0bxrj8lMIkRhUJC2AEB_brBmNPVTYctVM1AJmMY1r7Us2lchynQFDkAcLFeOG7ji/exec';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbxe0bxrj8lMIkRhUJC2AEB_brBmNPVTYctVM1AJmMY1r7Us2lchynQFDkAcLFeOG7ji/exec';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -44,71 +45,93 @@ export default function RFQForm() {
   });
 
   const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+    const selectedFile = e.target.files?.[0];
+
+    if (!selectedFile) {
+      setFile(null);
+      return;
     }
+
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      toast.error('File too large', {
+        description: 'Please upload file below 5MB.',
+      });
+      e.target.value = '';
+      setFile(null);
+      return;
+    }
+
+    setFile(selectedFile);
+  };
+
+  const fileToBase64 = (selectedFile) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const result = reader.result;
+        const base64 = String(result).split(',')[1] || '';
+        resolve(base64);
+      };
+
+      reader.onerror = reject;
+      reader.readAsDataURL(selectedFile);
+    });
   };
 
   const onSubmit = async (data) => {
-      console.log("RFQ submit clicked", data);
-  setIsSubmitting(true);
+    setIsSubmitting(true);
 
+    try {
+      let fileData = '';
+      let fileName = '';
+      let fileType = '';
 
-  try {
-    let fileData = "";
-    let fileName = "";
-    let fileType = "";
+      if (file) {
+        fileName = file.name;
+        fileType = file.type || 'application/octet-stream';
+        fileData = await fileToBase64(file);
+      }
 
-    if (file) {
-      fileName = file.name;
-      fileType = file.type;
-
-      fileData = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(",")[1]);
-        reader.readAsDataURL(file);
+      await fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({
+          name: data.name,
+          mobile: data.mobile_number,
+          email: data.email,
+          company: data.company_name,
+          company_address: '',
+          productName: data.product_required,
+          partNo: '',
+          category: 'RFQ',
+          make: '',
+          quantity: data.quantity,
+          message: data.message || '',
+          fileName,
+          fileType,
+          fileData,
+        }),
       });
+
+      toast.success('RFQ Submitted Successfully', {
+        description: 'Our team will get back to you shortly with a quotation.',
+      });
+
+      reset();
+      setFile(null);
+
+      const fileInput = document.getElementById('file_upload');
+      if (fileInput) fileInput.value = '';
+    } catch (error) {
+      console.error('RFQ Submission Error:', error);
+      toast.error('Submission Failed', {
+        description: 'There was an error submitting your request. Please try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    await fetch(API_URL, {
-  method: "POST",
-  mode: "no-cors",
-  body: JSON.stringify({
-    name: data.name,
-    mobile: data.mobile_number,
-    email: data.email,
-    company: data.company_name,
-    company_address: "",
-    productName: data.product_required,
-    partNo: "",
-    category: "RFQ",
-    make: "",
-    quantity: data.quantity,
-    message: data.message || "",
-    fileName,
-    fileType,
-    fileData,
-  }),
-});
-
-    toast.success("RFQ Submitted Successfully", {
-      description: "Our team will get back to you shortly with a quotation.",
-    });
-
-    reset();
-    setFile(null);
-
-    const fileInput = document.getElementById("file_upload");
-    if (fileInput) fileInput.value = "";
-  } catch (error) {
-    console.error("RFQ Submission Error:", error);
-    toast.error("Submission Failed", {
-      description: "There was an error submitting your request. Please try again.",
-    });
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-card p-6 md:p-8 rounded-2xl shadow-lg border">
@@ -118,7 +141,7 @@ export default function RFQForm() {
           <Input id="name" {...register('name')} placeholder="John Doe" className="text-foreground" />
           {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="company_name">Company Name *</Label>
           <Input id="company_name" {...register('company_name')} placeholder="Acme Corp" className="text-foreground" />
@@ -152,23 +175,21 @@ export default function RFQForm() {
 
       <div className="space-y-2">
         <Label htmlFor="file_upload">Upload Document/Drawing (Optional)</Label>
-        <div className="flex items-center gap-4">
-          <Input 
-            id="file_upload" 
-            type="file" 
-            onChange={handleFileChange} 
-            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-            className="text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-          />
-        </div>
-        <p className="text-xs text-muted-foreground">Accepted formats: PDF, JPG, PNG, DOC (Max 20MB)</p>
+        <Input
+          id="file_upload"
+          type="file"
+          onChange={handleFileChange}
+          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+          className="text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+        />
+        <p className="text-xs text-muted-foreground">Accepted formats: PDF, JPG, PNG, DOC. Max 5MB.</p>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="message">Additional Message (Optional)</Label>
-        <Textarea 
-          id="message" 
-          {...register('message')} 
+        <Textarea
+          id="message"
+          {...register('message')}
           placeholder="Any specific requirements, material grades, or delivery timelines..."
           className="min-h-[100px] text-foreground"
         />
