@@ -50,7 +50,9 @@ export default function RFQForm() {
   };
 
   const onSubmit = async (data) => {
+      console.log("RFQ submit clicked", data);
   setIsSubmitting(true);
+
 
   try {
     let fileData = "";
