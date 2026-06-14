@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import pb from '@/lib/pocketbaseClient';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxe0bxrj8lMIkRhUJC2AEB_brBmNPVTYctVM1AJmMY1r7Us2lchynQFDkAcLFeOG7ji/exec';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -52,18 +52,26 @@ export default function RFQForm() {
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
-      const formData = new FormData();
-      Object.keys(data).forEach((key) => {
-        if (data[key] !== undefined && data[key] !== null) {
-          formData.append(key, data[key]);
-        }
-      });
-
-      if (file) {
-        formData.append('file_upload', file);
-      }
-
-      await pb.collection('rfq_requests').create(formData, { $autoCancel: false });
+    await fetch(API_URL, {
+  method: 'POST',
+  mode: 'no-cors',
+  headers: {
+    'Content-Type': 'text/plain;charset=utf-8',
+  },
+  body: JSON.stringify({
+    name: data.name,
+    mobile: data.mobile_number,
+    email: data.email,
+    company: data.company_name,
+    company_address: '',
+    product_name: data.product_required,
+    part_number: '',
+    category: 'RFQ',
+    make: '',
+    quantity: data.quantity,
+    message: data.message || '',
+  }),
+});
       
       toast.success('RFQ Submitted Successfully', {
         description: 'Our team will get back to you shortly with a quotation.',
