@@ -50,46 +50,66 @@ export default function RFQForm() {
   };
 
   const onSubmit = async (data) => {
-    setIsSubmitting(true);
-    try {
-    await fetch(API_URL, {
-  method: 'POST',
-  mode: 'no-cors',
-  headers: {
-    'Content-Type': 'text/plain;charset=utf-8',
-  },
-  body: JSON.stringify({
-    name: data.name,
-    mobile: data.mobile_number,
-    email: data.email,
-    company: data.company_name,
-    company_address: '',
-    product_name: data.product_required,
-    part_number: '',
-    category: 'RFQ',
-    make: '',
-    quantity: data.quantity,
-    message: data.message || '',
-  }),
-});
-      
-      toast.success('RFQ Submitted Successfully', {
-        description: 'Our team will get back to you shortly with a quotation.',
+  setIsSubmitting(true);
+
+  try {
+    let fileData = "";
+    let fileName = "";
+    let fileType = "";
+
+    if (file) {
+      fileName = file.name;
+      fileType = file.type;
+
+      fileData = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(",")[1]);
+        reader.readAsDataURL(file);
       });
-      reset();
-      setFile(null);
-      // Reset file input visually
-      const fileInput = document.getElementById('file_upload');
-      if (fileInput) fileInput.value = '';
-    } catch (error) {
-      console.error('RFQ Submission Error:', error);
-      toast.error('Submission Failed', {
-        description: 'There was an error submitting your request. Please try again.',
-      });
-    } finally {
-      setIsSubmitting(false);
     }
-  };
+
+    await fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8",
+      },
+      body: JSON.stringify({
+        name: data.name,
+        mobile: data.mobile_number,
+        email: data.email,
+        company: data.company_name,
+        company_address: "",
+        productName: data.product_required,
+        partNo: "",
+        category: "RFQ",
+        make: "",
+        quantity: data.quantity,
+        message: data.message || "",
+        fileName,
+        fileType,
+        fileData,
+      }),
+    });
+
+    toast.success("RFQ Submitted Successfully", {
+      description: "Our team will get back to you shortly with a quotation.",
+    });
+
+    reset();
+    setFile(null);
+
+    const fileInput = document.getElementById("file_upload");
+    if (fileInput) fileInput.value = "";
+  } catch (error) {
+    console.error("RFQ Submission Error:", error);
+    toast.error("Submission Failed", {
+      description: "There was an error submitting your request. Please try again.",
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-card p-6 md:p-8 rounded-2xl shadow-lg border">
