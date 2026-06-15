@@ -365,13 +365,17 @@ function ProductsPage() {
                         >
                           <div className="h-56 bg-white border-b overflow-hidden">
                             <img
-                              src={
-                                item.image ||
-                                'https://via.placeholder.com/500x350?text=Product+Image'
-                              }
-                              alt={item.name}
-                              className="w-full h-full object-contain p-4"
-                            />
+  src={
+    item.image ||
+    'https://via.placeholder.com/500x350?text=Product+Image'
+  }
+  alt={item.name}
+  className="w-full h-full object-contain p-4"
+  onError={(e) => {
+    e.currentTarget.src =
+      'https://via.placeholder.com/500x350?text=Product+Image';
+  }}
+/>
                           </div>
 
                           <div className="p-6 flex flex-col flex-grow">
