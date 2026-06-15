@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
@@ -23,6 +22,16 @@ const API_URL =
   'https://script.google.com/macros/s/AKfycbxe0bxrj8lMIkRhUJC2AEB_brBmNPVTYctVM1AJmMY1r7Us2lchynQFDkAcLFeOG7ji/exec';
 
 const whatsappNumber = '919602338804';
+
+const fixedCategories = [
+  'Volvo Parts',
+  'Pumps',
+  'Valves',
+  'Fittings',
+  'Couplings',
+  'MSV Spare',
+  'Other Machinery Items',
+];
 
 const categoryMeta = {
   'Volvo Parts': {
@@ -80,8 +89,8 @@ function ProductsPage() {
   });
 
   useEffect(() => {
-  console.log('MR APEX API CALL STARTED');
-  fetch(API_URL + '?t=' + Date.now())
+    console.log('MR APEX API CALL STARTED');
+    fetch(API_URL + '?t=' + Date.now())
       .then((res) => res.json())
       .then((data) => {
         setProducts(data.products || []);
@@ -99,26 +108,52 @@ function ProductsPage() {
     products.forEach((product) => {
       if (!product.category) return;
 
-      if (!grouped[product.category]) {
-        grouped[product.category] = [];
+      const cleanCategory = product.category.trim();
+
+      if (!grouped[cleanCategory]) {
+        grouped[cleanCategory] = [];
       }
 
-      grouped[product.category].push(product);
+      grouped[cleanCategory].push(product);
     });
 
-    return Object.keys(grouped).map((name) => ({
+    return fixedCategories.map((name) => ({
       name,
       icon: categoryMeta[name]?.icon || Package,
       description:
         categoryMeta[name]?.description ||
         'Industrial components, machinery parts and MRO supplies.',
-      items: grouped[name],
+      items: grouped[name] || [],
     }));
   }, [products]);
+
+  useEffect(() => {
+    if (categories.length === 0) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const categoryFromUrl = params.get('category');
+
+    if (
+      categoryFromUrl &&
+      categories.some((cat) => cat.name === categoryFromUrl)
+    ) {
+      setSelectedCategory(categoryFromUrl);
+    }
+  }, [categories]);
 
   const currentCategory = categories.find(
     (cat) => cat.name === selectedCategory
   );
+
+  const changeCategory = (categoryName) => {
+    setSelectedCategory(categoryName);
+
+    window.history.pushState(
+      {},
+      '',
+      `/products?category=${encodeURIComponent(categoryName)}`
+    );
+  };
 
   const getWhatsappMessage = (item, categoryName) => {
     const details = [];
@@ -168,21 +203,23 @@ function ProductsPage() {
     };
 
     try {
-  await fetch(API_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: {
-      'Content-Type': 'text/plain;charset=utf-8',
-    },
-    body: JSON.stringify(payload),
-  });
+      await fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify(payload),
+      });
 
-  alert('Enquiry submitted successfully.');
-  setSelectedProduct(null);
-} catch (error) {
-  console.error('Enquiry error:', error);
-  alert('Enquiry submit nahi hui. Please dobara try karein.');
-}
+      alert('Enquiry submitted successfully.');
+      setSelectedProduct(null);
+    } catch (error) {
+      console.error('Enquiry error:', error);
+      alert('Enquiry submit nahi hui. Please dobara try karein.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -198,19 +235,51 @@ function ProductsPage() {
       <Header />
 
       <main>
-        <section className="py-20 bg-primary text-primary-foreground">
-          <div className="container-custom text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+        <section className="py-6 bg-primary text-primary-foreground">
+          <div className="container-custom text-center max-w-7xl mx-auto">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">
               {currentCategory
                 ? currentCategory.name
                 : 'Our Product Categories'}
             </h1>
 
-            <p className="text-lg md:text-xl opacity-90 leading-relaxed">
+            {currentCategory && (
+              <div className="w-10 h-0.5 bg-white/70 mx-auto mb-3 rounded-full"></div>
+            )}
+
+            <p className="text-sm md:text-base opacity-90 leading-relaxed mb-4 max-w-4xl mx-auto">
               {currentCategory
                 ? currentCategory.description
                 : 'Select a category to view available products, part numbers and enquiry options.'}
             </p>
+
+            {currentCategory && categories.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-3 mt-3">
+                {categories.map((category) => {
+                  const Icon = category.icon;
+                  const isActive = selectedCategory === category.name;
+
+                  return (
+                    <button
+                      key={category.name}
+                      type="button"
+                      onClick={() => changeCategory(category.name)}
+                      className={`px-4 py-2 rounded-lg border transition-all font-semibold text-xs flex items-center gap-2 min-w-[145px] justify-center
+                        ${
+                          isActive
+                            ? 'bg-white text-primary border-white shadow-md'
+                            : 'bg-white/5 text-white border-white/30 hover:bg-white hover:text-primary'
+                        }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>
+                        {category.name} ({category.items.length})
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
 
@@ -219,11 +288,6 @@ function ProductsPage() {
             {loading ? (
               <div className="text-center text-muted-foreground">
                 Loading products...
-              </div>
-            ) : categories.length === 0 ? (
-              <div className="text-center text-muted-foreground">
-                No products found. Please add products in Google Sheet with
-                Status Active.
               </div>
             ) : !currentCategory ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -234,7 +298,7 @@ function ProductsPage() {
                     <motion.button
                       key={category.name}
                       type="button"
-                      onClick={() => setSelectedCategory(category.name)}
+                      onClick={() => changeCategory(category.name)}
                       initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
@@ -268,106 +332,115 @@ function ProductsPage() {
               <>
                 <Button
                   variant="outline"
-                  onClick={() => setSelectedCategory(null)}
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    window.history.pushState({}, '', '/products');
+                  }}
                   className="mb-8"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Categories
                 </Button>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {currentCategory.items.map((item, index) => {
-                    const message = getWhatsappMessage(
-                      item,
-                      currentCategory.name
-                    );
+                {currentCategory.items.length === 0 ? (
+                  <div className="bg-white border rounded-2xl p-10 text-center text-muted-foreground">
+                    Products will be added soon in this category.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {currentCategory.items.map((item, index) => {
+                      const message = getWhatsappMessage(
+                        item,
+                        currentCategory.name
+                      );
 
-                    return (
-                      <motion.div
-                        key={`${item.name}-${item.partNo}-${index}`}
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: index * 0.08 }}
-                        className="bg-card rounded-2xl overflow-hidden shadow-sm border flex flex-col h-full"
-                      >
-                        <div className="h-56 bg-white border-b overflow-hidden">
-                          <img
-                            src={
-                              item.image ||
-                              'https://via.placeholder.com/500x350?text=Product+Image'
-                            }
-                            alt={item.name}
-                            className="w-full h-full object-contain p-4"
-                          />
-                        </div>
-
-                        <div className="p-6 flex flex-col flex-grow">
-                          <p className="text-sm font-semibold text-primary mb-2">
-                            {currentCategory.name}
-                          </p>
-
-                          <h2 className="text-xl font-bold text-foreground mb-3">
-                            {item.name}
-                          </h2>
-
-                          <div className="text-sm text-muted-foreground mb-6 space-y-1">
-                            {item.partNo && (
-                              <p>
-                                <span className="font-semibold text-foreground">
-                                  Part Number:
-                                </span>{' '}
-                                {item.partNo}
-                              </p>
-                            )}
-
-                            {item.make && (
-                              <p>
-                                <span className="font-semibold text-foreground">
-                                  Make:
-                                </span>{' '}
-                                {item.make}
-                              </p>
-                            )}
-
-                            {item.description && (
-                              <p className="pt-2">{item.description}</p>
-                            )}
-                          </div>
-
-                          <div className="mt-auto space-y-3">
-                            <Button
-                              asChild
-                              className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white"
-                            >
-                              <a
-                                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-                                  message
-                                )}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <MessageCircle className="w-4 h-4 mr-2" />
-                                Enquire on WhatsApp
-                              </a>
-                            </Button>
-
-                            <Button
-                              variant="outline"
-                              className="w-full"
-                              onClick={() =>
-                                openQuoteForm(item, currentCategory.name)
+                      return (
+                        <motion.div
+                          key={`${item.name}-${item.partNo}-${index}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.5, delay: index * 0.08 }}
+                          className="bg-card rounded-2xl overflow-hidden shadow-sm border flex flex-col h-full"
+                        >
+                          <div className="h-56 bg-white border-b overflow-hidden">
+                            <img
+                              src={
+                                item.image ||
+                                'https://via.placeholder.com/500x350?text=Product+Image'
                               }
-                            >
-                              <Send className="w-4 h-4 mr-2" />
-                              Request Quote
-                            </Button>
+                              alt={item.name}
+                              className="w-full h-full object-contain p-4"
+                            />
                           </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
+
+                          <div className="p-6 flex flex-col flex-grow">
+                            <p className="text-sm font-semibold text-primary mb-2">
+                              {currentCategory.name}
+                            </p>
+
+                            <h2 className="text-xl font-bold text-foreground mb-3">
+                              {item.name}
+                            </h2>
+
+                            <div className="text-sm text-muted-foreground mb-6 space-y-1">
+                              {item.partNo && (
+                                <p>
+                                  <span className="font-semibold text-foreground">
+                                    Part Number:
+                                  </span>{' '}
+                                  {item.partNo}
+                                </p>
+                              )}
+
+                              {item.make && (
+                                <p>
+                                  <span className="font-semibold text-foreground">
+                                    Make:
+                                  </span>{' '}
+                                  {item.make}
+                                </p>
+                              )}
+
+                              {item.description && (
+                                <p className="pt-2">{item.description}</p>
+                              )}
+                            </div>
+
+                            <div className="mt-auto space-y-3">
+                              <Button
+                                asChild
+                                className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white"
+                              >
+                                <a
+                                  href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+                                    message
+                                  )}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <MessageCircle className="w-4 h-4 mr-2" />
+                                  Enquire on WhatsApp
+                                </a>
+                              </Button>
+
+                              <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={() =>
+                                  openQuoteForm(item, currentCategory.name)
+                                }
+                              >
+                                <Send className="w-4 h-4 mr-2" />
+                                Request Quote
+                              </Button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -397,9 +470,7 @@ function ProductsPage() {
                 required
                 placeholder="Your Name"
                 value={form.name}
-                onChange={(e) =>
-                  setForm({ ...form, name: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="w-full border rounded-lg px-4 py-3"
               />
 
@@ -407,28 +478,24 @@ function ProductsPage() {
                 required
                 placeholder="Mobile / WhatsApp Number"
                 value={form.mobile}
-                onChange={(e) =>
-                  setForm({ ...form, mobile: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, mobile: e.target.value })}
                 className="w-full border rounded-lg px-4 py-3"
               />
 
               <input
                 placeholder="Email Optional"
                 value={form.email}
-                onChange={(e) =>
-                  setForm({ ...form, email: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="w-full border rounded-lg px-4 py-3"
               />
+
               <input
                 placeholder="Company Name"
                 value={form.company}
-                onChange={(e) =>
-                  setForm({ ...form, company: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, company: e.target.value })}
                 className="w-full border rounded-lg px-4 py-3"
               />
+
               <input
                 placeholder="Company Address"
                 value={form.company_address}
@@ -437,7 +504,6 @@ function ProductsPage() {
                 }
                 className="w-full border rounded-lg px-4 py-3"
               />
-
 
               <input
                 placeholder="Quantity"
