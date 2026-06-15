@@ -29,7 +29,7 @@ const fixedCategories = [
   'Valves',
   'Fittings',
   'Couplings',
-  'MSV Spare',
+  'MSV Spares',
   'Other Machinery Items',
 ];
 
@@ -59,7 +59,7 @@ const categoryMeta = {
     description:
       'Solenoid valves, pressure valves, flow control valves and directional valves.',
   },
-  'MSV Spare': {
+  'MSV Spares': {
     icon: Wrench,
     description:
       'MSV spare parts, seal kits, repair kits and machinery replacement items.',
