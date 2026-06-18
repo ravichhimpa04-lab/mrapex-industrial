@@ -373,6 +373,8 @@ function ProductsPage() {
                             <img
   src={
     item.image ||
+    item.imageUrl ||
+    item['Image URL'] ||
     'https://via.placeholder.com/500x350?text=Product+Image'
   }
   alt={item.name}
