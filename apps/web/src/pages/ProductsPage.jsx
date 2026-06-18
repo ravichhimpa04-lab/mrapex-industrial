@@ -28,6 +28,7 @@ const fixedCategories = [
   'Pumps',
   'Valves',
   'Fittings',
+  'Hose Pipes',
   'Couplings',
   'MSV Spares',
   'Other Machinery Items',
@@ -40,6 +41,11 @@ const categoryMeta = {
       'Volvo machinery parts, engine parts, hydraulic parts and replacement spares.',
   },
   Fittings: {
+    icon: Settings,
+    description:
+      'Hydraulic fittings, hose fittings, pneumatic fittings and tube fittings.',
+  },
+  'Hose Pipes': {
     icon: Settings,
     description:
       'Hydraulic fittings, hose fittings, pneumatic fittings and tube fittings.',
