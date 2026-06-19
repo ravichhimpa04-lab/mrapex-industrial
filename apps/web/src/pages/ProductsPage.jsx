@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
+import { supabase } from '@/lib/supabaseClient';
 
 const API_URL =
   'https://script.google.com/macros/s/AKfycbxe0bxrj8lMIkRhUJC2AEB_brBmNPVTYctVM1AJmMY1r7Us2lchynQFDkAcLFeOG7ji/exec';
@@ -48,7 +49,7 @@ const categoryMeta = {
   'Hose Pipes': {
     icon: Settings,
     description:
-      'Hydraulic fittings, hose fittings, pneumatic fittings and tube fittings.',
+      'Hydraulic hoses, hose pipes, hose assemblies and industrial hose solutions.',
   },
   Couplings: {
     icon: Cog,
@@ -79,6 +80,7 @@ const categoryMeta = {
 
 function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -95,17 +97,50 @@ function ProductsPage() {
   });
 
   useEffect(() => {
-    console.log('MR APEX API CALL STARTED');
-    fetch(API_URL + '?t=' + Date.now())
-      .then((res) => res.json())
-      .then((data) => {
-        setProducts(data.products || []);
-        setLoading(false);
-      })
-      .catch(() => {
+    const loadProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('status', 'Active')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Supabase products error:', error);
+          setProducts([]);
+          return;
+        }
+
+        const formattedProducts = (data || []).map((item) => ({
+  id: item.id,
+
+  name: item.product_name || '',
+
+  category: item.category || '',
+
+  subCategory: item.sub_category || '',
+
+  partNo: item.part_number || '',
+
+  make: item.make || '',
+
+  description: item.description || '',
+
+  image: item.image_url || '',
+
+  status: item.status || '',
+}));
+
+        setProducts(formattedProducts);
+      } catch (err) {
+        console.error('Products load error:', err);
         setProducts([]);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    loadProducts();
   }, []);
 
   const categories = useMemo(() => {
@@ -138,12 +173,17 @@ function ProductsPage() {
 
     const params = new URLSearchParams(window.location.search);
     const categoryFromUrl = params.get('category');
+    const subCategoryFromUrl = params.get('subCategory');
 
     if (
       categoryFromUrl &&
       categories.some((cat) => cat.name === categoryFromUrl)
     ) {
       setSelectedCategory(categoryFromUrl);
+
+      if (subCategoryFromUrl) {
+        setSelectedSubCategory(subCategoryFromUrl);
+      }
     }
   }, [categories]);
 
@@ -151,8 +191,26 @@ function ProductsPage() {
     (cat) => cat.name === selectedCategory
   );
 
+  const subCategories = currentCategory
+    ? [
+        ...new Set(
+          currentCategory.items
+            .map((item) => item.subCategory)
+            .filter(Boolean)
+        ),
+      ]
+    : [];
+
+  const visibleProducts =
+    currentCategory && selectedSubCategory
+      ? currentCategory.items.filter(
+          (item) => item.subCategory === selectedSubCategory
+        )
+      : currentCategory?.items || [];
+
   const changeCategory = (categoryName) => {
     setSelectedCategory(categoryName);
+    setSelectedSubCategory(null);
 
     window.history.pushState(
       {},
@@ -161,11 +219,32 @@ function ProductsPage() {
     );
   };
 
+  const changeSubCategory = (subCategoryName) => {
+    setSelectedSubCategory(subCategoryName);
+
+    if (subCategoryName) {
+      window.history.pushState(
+        {},
+        '',
+        `/products?category=${encodeURIComponent(
+          selectedCategory
+        )}&subCategory=${encodeURIComponent(subCategoryName)}`
+      );
+    } else {
+      window.history.pushState(
+        {},
+        '',
+        `/products?category=${encodeURIComponent(selectedCategory)}`
+      );
+    }
+  };
+
   const getWhatsappMessage = (item, categoryName) => {
     const details = [];
 
     if (item.partNo) details.push(`Part Number: ${item.partNo}`);
     if (item.make) details.push(`Make: ${item.make}`);
+    if (item.subCategory) details.push(`Sub Category: ${item.subCategory}`);
 
     return `Hello MR Apex Industrial Components, I need quotation for ${
       item.name
@@ -195,18 +274,41 @@ function ProductsPage() {
     setSending(true);
 
     const payload = {
-      name: form.name,
-      mobile: form.mobile,
-      email: form.email,
-      company: form.company,
-      company_address: form.company_address,
-      quantity: form.quantity,
-      message: form.message,
-      productName: selectedProduct.name,
-      partNo: selectedProduct.partNo || '',
-      category: selectedProduct.category,
-      make: selectedProduct.make || '',
-    };
+  name: form.name,
+  mobile: form.mobile,
+  email: form.email,
+  company: form.company,
+  company_address: form.company_address,
+  quantity: form.quantity,
+  message: form.message,
+
+  productName:
+    selectedProduct.product_name ||
+    selectedProduct.name ||
+    '',
+
+  partNo:
+    selectedProduct.part_number ||
+    selectedProduct.partNo ||
+    '',
+
+  category:
+    selectedProduct.category ||
+    '',
+
+  subCategory:
+    selectedProduct.sub_category ||
+    selectedProduct.subCategory ||
+    '',
+
+  make:
+    selectedProduct.make ||
+    '',
+
+  description:
+    selectedProduct.description ||
+    '',
+};
 
     try {
       await fetch(API_URL, {
@@ -241,7 +343,7 @@ function ProductsPage() {
       <Header />
 
       <main>
-        <section className="py-6 bg-primary text-primary-foreground">
+        <section className="py-5 bg-primary text-primary-foreground">
           <div className="container-custom text-center max-w-7xl mx-auto">
             <h1 className="text-2xl md:text-3xl font-bold mb-2">
               {currentCategory
@@ -250,17 +352,17 @@ function ProductsPage() {
             </h1>
 
             {currentCategory && (
-              <div className="w-10 h-0.5 bg-white/70 mx-auto mb-3 rounded-full"></div>
+              <div className="w-10 h-0.5 bg-white/70 mx-auto mb-2 rounded-full"></div>
             )}
 
-            <p className="text-sm md:text-base opacity-90 leading-relaxed mb-4 max-w-4xl mx-auto">
+            <p className="text-sm md:text-base opacity-90 leading-relaxed mb-3 max-w-4xl mx-auto">
               {currentCategory
                 ? currentCategory.description
                 : 'Select a category to view available products, part numbers and enquiry options.'}
             </p>
 
             {currentCategory && categories.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-3 mt-3">
+              <div className="flex flex-wrap justify-center gap-2 mt-3 max-w-7xl mx-auto">
                 {categories.map((category) => {
                   const Icon = category.icon;
                   const isActive = selectedCategory === category.name;
@@ -270,7 +372,7 @@ function ProductsPage() {
                       key={category.name}
                       type="button"
                       onClick={() => changeCategory(category.name)}
-                      className={`px-4 py-2 rounded-lg border transition-all font-semibold text-xs flex items-center gap-2 min-w-[145px] justify-center
+                      className={`px-3 py-1.5 rounded-lg border transition-all font-semibold text-xs flex items-center gap-2 min-w-[105px] justify-center
                         ${
                           isActive
                             ? 'bg-white text-primary border-white shadow-md'
@@ -284,6 +386,39 @@ function ProductsPage() {
                     </button>
                   );
                 })}
+              </div>
+            )}
+
+            {currentCategory && subCategories.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2 mt-2 pt-2 border-t border-white/20 max-w-7xl mx-auto">
+                <button
+                  type="button"
+                  onClick={() => changeSubCategory(null)}
+                  className={`px-3 py-1.5 rounded-lg border transition-all font-semibold text-xs min-w-[105px]
+                    ${
+                      !selectedSubCategory
+                        ? 'bg-white text-primary border-white shadow-md'
+                        : 'bg-white/5 text-white border-white/30 hover:bg-white hover:text-primary'
+                    }`}
+                >
+                  All {currentCategory.name}
+                </button>
+
+                {subCategories.map((subCategory) => (
+                  <button
+                    key={subCategory}
+                    type="button"
+                    onClick={() => changeSubCategory(subCategory)}
+                    className={`px-3 py-1.5 rounded-lg border transition-all font-semibold text-xs min-w-[105px]
+                      ${
+                        selectedSubCategory === subCategory
+                          ? 'bg-white text-primary border-white shadow-md'
+                          : 'bg-white/5 text-white border-white/30 hover:bg-white hover:text-primary'
+                      }`}
+                  >
+                    {subCategory}
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -340,6 +475,7 @@ function ProductsPage() {
                   variant="outline"
                   onClick={() => {
                     setSelectedCategory(null);
+                    setSelectedSubCategory(null);
                     window.history.pushState({}, '', '/products');
                   }}
                   className="mb-8"
@@ -348,13 +484,13 @@ function ProductsPage() {
                   Back to Categories
                 </Button>
 
-                {currentCategory.items.length === 0 ? (
+                {visibleProducts.length === 0 ? (
                   <div className="bg-white border rounded-2xl p-10 text-center text-muted-foreground">
                     Products will be added soon in this category.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {currentCategory.items.map((item, index) => {
+                    {visibleProducts.map((item, index) => {
                       const message = getWhatsappMessage(
                         item,
                         currentCategory.name
@@ -362,7 +498,7 @@ function ProductsPage() {
 
                       return (
                         <motion.div
-                          key={`${item.name}-${item.partNo}-${index}`}
+                          key={`${item.id || item.name}-${item.partNo || index}`}
                           initial={{ opacity: 0, y: 20 }}
                           whileInView={{ opacity: 1, y: 0 }}
                           viewport={{ once: true }}
@@ -371,24 +507,25 @@ function ProductsPage() {
                         >
                           <div className="h-56 bg-white border-b overflow-hidden">
                             <img
-  src={
-    item.image ||
-    item.imageUrl ||
-    item['Image URL'] ||
-    'https://via.placeholder.com/500x350?text=Product+Image'
-  }
-  alt={item.name}
-  className="w-full h-full object-contain p-4"
-  onError={(e) => {
-    e.currentTarget.src =
-      'https://via.placeholder.com/500x350?text=Product+Image';
-  }}
-/>
+                              src={
+                                item.image ||
+                                item.imageUrl ||
+                                item['Image URL'] ||
+                                'https://via.placeholder.com/500x350?text=Product+Image'
+                              }
+                              alt={item.name}
+                              className="w-full h-full object-contain p-4"
+                              onError={(e) => {
+                                e.currentTarget.src =
+                                  'https://via.placeholder.com/500x350?text=Product+Image';
+                              }}
+                            />
                           </div>
 
                           <div className="p-6 flex flex-col flex-grow">
                             <p className="text-sm font-semibold text-primary mb-2">
                               {currentCategory.name}
+                              {item.subCategory && ` / ${item.subCategory}`}
                             </p>
 
                             <h2 className="text-xl font-bold text-foreground mb-3">
@@ -475,6 +612,8 @@ function ProductsPage() {
             <p className="text-sm text-gray-600 mb-5">
               {selectedProduct.name}
               {selectedProduct.partNo && ` | ${selectedProduct.partNo}`}
+              {selectedProduct.subCategory &&
+                ` | ${selectedProduct.subCategory}`}
             </p>
 
             <form onSubmit={submitEnquiry} className="space-y-4">

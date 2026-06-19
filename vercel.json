@@ -15,6 +15,14 @@
     {
       "source": "/industries",
       "destination": "/"
+    },
+    {
+      "source": "/admin-login",
+      "destination": "/"
+    },
+    {
+      "source": "/admin",
+      "destination": "/"
     }
   ]
 }
