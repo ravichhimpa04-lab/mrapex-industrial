@@ -8,24 +8,10 @@ const API_URL = import.meta.env.VITE_API_URL;
 const ENQUIRY_API_URL =
   'https://script.google.com/macros/s/AKfycbxe0bxrj8lMIkRhUJC2AEB_brBmNPVTYctVM1AJmMY1r7Us2lchynQFDkAcLFeOG7ji/exec';
 
-const allowedCategories = [
-  'Volvo Parts',
-  'Pumps',
-  'Valves',
-  'Fittings',
-  'Hose Pipes',
-  'Couplings',
-  'MSV Spares',
-  'Other Machinery Items',
-];
+const OWNER_EMAIL = 'mrapexindustrial@gmail.com';
+const PARTNER_EMAIL = 'manasviiiiii.jain@gmail.com';
 
-const enquiryStatuses = [
-  'New',
-  'Running',
-  'Quotation Sent',
-  'Completed',
-  'Lost',
-];
+const enquiryStatuses = ['New', 'Running', 'Quotation Sent', 'Completed', 'Lost'];
 
 const emptyForm = {
   product_name: '',
@@ -42,6 +28,23 @@ const isBlank = (value) => !value || String(value).trim() === '';
 
 function AdminDashboard() {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
+
+  const [currentUserEmail, setCurrentUserEmail] = useState('');
+  const isOwner = currentUserEmail === OWNER_EMAIL;
+  const isPartner = currentUserEmail === PARTNER_EMAIL;
+
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [editingCategoryName, setEditingCategoryName] = useState('');
+
+  const [selectedCategoryForSub, setSelectedCategoryForSub] = useState('');
+  const [newSubCategoryName, setNewSubCategoryName] = useState('');
+  const [editingSubCategoryId, setEditingSubCategoryId] = useState(null);
+  const [editingSubCategoryName, setEditingSubCategoryName] = useState('');
+  const [editingSubCategoryParentId, setEditingSubCategoryParentId] = useState('');
+
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -61,14 +64,24 @@ function AdminDashboard() {
   const [updatingEnquiryId, setUpdatingEnquiryId] = useState(null);
 
   const allowedEmails =
-    import.meta.env.VITE_ADMIN_EMAILS?.split(',') || [];
+    import.meta.env.VITE_ADMIN_EMAILS?.split(',').map((e) => e.trim().toLowerCase()) || [
+      OWNER_EMAIL,
+      PARTNER_EMAIL,
+    ];
 
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
 
+  const categoryNames = categories.map((item) => item.name);
+
+  const formSubCategories = useMemo(() => {
+    const selectedCategory = categories.find((item) => item.name === form.category);
+    if (!selectedCategory) return [];
+    return subCategories.filter((item) => item.category_id === selectedCategory.id);
+  }, [categories, subCategories, form.category]);
+
   const fetchProducts = async () => {
     setLoading(true);
-
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -78,16 +91,37 @@ function AdminDashboard() {
     setLoading(false);
   };
 
+  const fetchCategories = async () => {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('status', 'Active')
+      .order('name', { ascending: true });
+
+    if (!error) setCategories(data || []);
+  };
+
+  const fetchSubCategories = async () => {
+    const { data, error } = await supabase
+      .from('sub_categories')
+      .select('*')
+      .eq('status', 'Active')
+      .order('name', { ascending: true });
+
+    if (!error) setSubCategories(data || []);
+  };
+
+  const fetchCategorySetup = async () => {
+    await fetchCategories();
+    await fetchSubCategories();
+  };
+
   const fetchEnquiries = async () => {
     try {
       setLoadingEnquiries(true);
-
       const response = await fetch(`${ENQUIRY_API_URL}?type=enquiries`);
       const result = await response.json();
-
-      if (result.success) {
-        setEnquiries(result.enquiries || []);
-      }
+      if (result.success) setEnquiries(result.enquiries || []);
     } catch (error) {
       console.error('Fetch enquiries error:', error);
     } finally {
@@ -106,11 +140,10 @@ function AdminDashboard() {
         return;
       }
 
-      const email = user.email?.toLowerCase();
+      const email = user.email?.toLowerCase() || '';
+      setCurrentUserEmail(email);
 
-      const isAllowed = allowedEmails.some(
-        (item) => item.trim().toLowerCase() === email
-      );
+      const isAllowed = allowedEmails.includes(email);
 
       if (!isAllowed) {
         setAccessDenied(true);
@@ -119,6 +152,7 @@ function AdminDashboard() {
       }
 
       await fetchProducts();
+      await fetchCategorySetup();
       await fetchEnquiries();
       setCheckingAccess(false);
     };
@@ -138,89 +172,42 @@ function AdminDashboard() {
 
   const summaryCards = [
     { label: 'Total Products', value: products.length },
-    {
-      label: 'Missing Images',
-      value: products.filter((item) => isBlank(item.image_url)).length,
-    },
+    { label: 'Missing Images', value: products.filter((item) => isBlank(item.image_url)).length },
     { label: 'Missing Details', value: missingDetailsCount },
-    {
-      label: 'Inactive Products',
-      value: products.filter((item) => item.status === 'Inactive').length,
-    },
+    { label: 'Inactive Products', value: products.filter((item) => item.status === 'Inactive').length },
   ];
 
   const enquiryCards = [
     { label: 'Total Enquiries', value: enquiries.length },
-    {
-      label: 'New',
-      value: enquiries.filter((item) => (item.status || 'New') === 'New')
-        .length,
-    },
-    {
-      label: 'Running',
-      value: enquiries.filter((item) => item.status === 'Running').length,
-    },
-    {
-      label: 'Quotation Sent',
-      value: enquiries.filter((item) => item.status === 'Quotation Sent')
-        .length,
-    },
-    {
-      label: 'Completed',
-      value: enquiries.filter((item) => item.status === 'Completed').length,
-    },
-    {
-      label: 'Lost',
-      value: enquiries.filter((item) => item.status === 'Lost').length,
-    },
+    { label: 'New', value: enquiries.filter((item) => (item.status || 'New') === 'New').length },
+    { label: 'Running', value: enquiries.filter((item) => item.status === 'Running').length },
+    { label: 'Quotation Sent', value: enquiries.filter((item) => item.status === 'Quotation Sent').length },
+    { label: 'Completed', value: enquiries.filter((item) => item.status === 'Completed').length },
+    { label: 'Lost', value: enquiries.filter((item) => item.status === 'Lost').length },
   ];
 
   const baseFilteredProducts = useMemo(() => {
-    if (activeFilter === 'missing_image') {
-      return products.filter((item) => isBlank(item.image_url));
-    }
-
-    if (activeFilter === 'missing_part_number') {
-      return products.filter((item) => isBlank(item.part_number));
-    }
-
-    if (activeFilter === 'missing_category') {
-      return products.filter((item) => isBlank(item.category));
-    }
-
-    if (activeFilter === 'missing_sub_category') {
-      return products.filter((item) => isBlank(item.sub_category));
-    }
-
-    if (activeFilter === 'missing_make') {
-      return products.filter((item) => isBlank(item.make));
-    }
-
-    if (activeFilter === 'missing_description') {
-      return products.filter((item) => isBlank(item.description));
-    }
-
-    if (activeFilter === 'inactive') {
-      return products.filter((item) => item.status === 'Inactive');
-    }
-
+    if (activeFilter === 'missing_image') return products.filter((item) => isBlank(item.image_url));
+    if (activeFilter === 'missing_part_number') return products.filter((item) => isBlank(item.part_number));
+    if (activeFilter === 'missing_category') return products.filter((item) => isBlank(item.category));
+    if (activeFilter === 'missing_sub_category') return products.filter((item) => isBlank(item.sub_category));
+    if (activeFilter === 'missing_make') return products.filter((item) => isBlank(item.make));
+    if (activeFilter === 'missing_description') return products.filter((item) => isBlank(item.description));
+    if (activeFilter === 'inactive') return products.filter((item) => item.status === 'Inactive');
     return products;
   }, [products, activeFilter]);
 
   const filteredProducts = useMemo(() => {
     const text = searchText.trim().toLowerCase();
-
     if (!text) return baseFilteredProducts;
 
-    return baseFilteredProducts.filter((item) => {
-      return (
-        String(item.product_name || '').toLowerCase().includes(text) ||
-        String(item.part_number || '').toLowerCase().includes(text) ||
-        String(item.category || '').toLowerCase().includes(text) ||
-        String(item.sub_category || '').toLowerCase().includes(text) ||
-        String(item.make || '').toLowerCase().includes(text)
-      );
-    });
+    return baseFilteredProducts.filter((item) =>
+      String(item.product_name || '').toLowerCase().includes(text) ||
+      String(item.part_number || '').toLowerCase().includes(text) ||
+      String(item.category || '').toLowerCase().includes(text) ||
+      String(item.sub_category || '').toLowerCase().includes(text) ||
+      String(item.make || '').toLowerCase().includes(text)
+    );
   }, [baseFilteredProducts, searchText]);
 
   const filteredEnquiries = useMemo(() => {
@@ -228,9 +215,7 @@ function AdminDashboard() {
 
     return enquiries.filter((item) => {
       const status = item.status || 'New';
-
-      const matchesStatus =
-        enquiryStatusFilter === 'all' || status === enquiryStatusFilter;
+      const matchesStatus = enquiryStatusFilter === 'all' || status === enquiryStatusFilter;
 
       const matchesSearch =
         !text ||
@@ -247,50 +232,56 @@ function AdminDashboard() {
 
   const filterButtons = [
     { key: 'all', label: 'All Products', count: products.length },
-    {
-      key: 'missing_image',
-      label: 'Missing Image',
-      count: products.filter((item) => isBlank(item.image_url)).length,
-    },
-    {
-      key: 'missing_part_number',
-      label: 'Missing Part No',
-      count: products.filter((item) => isBlank(item.part_number)).length,
-    },
-    {
-      key: 'missing_category',
-      label: 'Missing Category',
-      count: products.filter((item) => isBlank(item.category)).length,
-    },
-    {
-      key: 'missing_sub_category',
-      label: 'Missing Sub Category',
-      count: products.filter((item) => isBlank(item.sub_category)).length,
-    },
-    {
-      key: 'missing_make',
-      label: 'Missing Make',
-      count: products.filter((item) => isBlank(item.make)).length,
-    },
-    {
-      key: 'missing_description',
-      label: 'Missing Description',
-      count: products.filter((item) => isBlank(item.description)).length,
-    },
-    {
-      key: 'inactive',
-      label: 'Inactive',
-      count: products.filter((item) => item.status === 'Inactive').length,
-    },
+    { key: 'missing_image', label: 'Missing Image', count: products.filter((item) => isBlank(item.image_url)).length },
+    { key: 'missing_part_number', label: 'Missing Part No', count: products.filter((item) => isBlank(item.part_number)).length },
+    { key: 'missing_category', label: 'Missing Category', count: products.filter((item) => isBlank(item.category)).length },
+    { key: 'missing_sub_category', label: 'Missing Sub Category', count: products.filter((item) => isBlank(item.sub_category)).length },
+    { key: 'missing_make', label: 'Missing Make', count: products.filter((item) => isBlank(item.make)).length },
+    { key: 'missing_description', label: 'Missing Description', count: products.filter((item) => isBlank(item.description)).length },
+    { key: 'inactive', label: 'Inactive', count: products.filter((item) => item.status === 'Inactive').length },
   ];
 
   const logout = async () => {
     await supabase.auth.signOut();
     window.location.href = '/admin-login';
   };
+  const sendTestEmail = async () => {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const response = await fetch(`${API_URL}/send-test-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token}`,
+      },
+      body: JSON.stringify({
+        to: 'ravichhimpa04@gmail.com',
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Test email failed');
+    }
+
+    alert('Test email sent successfully. Check inbox/spam.');
+  } catch (error) {
+    alert(error.message);
+  }
+};
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === 'category') {
+      setForm((prev) => ({ ...prev, category: value, sub_category: '' }));
+      return;
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -303,7 +294,6 @@ function AdminDashboard() {
 
   const openEditForm = (product) => {
     setEditingProduct(product);
-
     setForm({
       product_name: product.product_name || '',
       part_number: product.part_number || '',
@@ -314,7 +304,6 @@ function AdminDashboard() {
       image_url: product.image_url || '',
       status: product.status || 'Active',
     });
-
     setMsg('');
     setShowForm(true);
   };
@@ -343,9 +332,7 @@ function AdminDashboard() {
 
       const response = await fetch(`${API_URL}/upload-r2`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
         body: formData,
       });
 
@@ -355,10 +342,7 @@ function AdminDashboard() {
         throw new Error(result.error || 'Image upload failed');
       }
 
-      setForm((prev) => ({
-        ...prev,
-        image_url: result.imageUrl,
-      }));
+      setForm((prev) => ({ ...prev, image_url: result.imageUrl }));
     } catch (error) {
       setMsg(error.message);
     } finally {
@@ -378,7 +362,6 @@ function AdminDashboard() {
       const workbook = XLSX.read(data);
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-
       const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
       if (!rows.length) {
@@ -401,26 +384,16 @@ function AdminDashboard() {
 
       const invalidRows = payload
         .map((item, index) => ({ ...item, excelRow: index + 2 }))
-        .filter(
-          (item) =>
-            !item.product_name ||
-            !item.category ||
-            !allowedCategories.includes(item.category)
-        );
+        .filter((item) => !item.product_name || !item.category || !categoryNames.includes(item.category));
 
       if (invalidRows.length > 0) {
         const errorText = invalidRows
           .slice(0, 10)
-          .map(
-            (item) =>
-              `Row ${item.excelRow}: product_name="${item.product_name}", category="${item.category}"`
-          )
+          .map((item) => `Row ${item.excelRow}: product_name="${item.product_name}", category="${item.category}"`)
           .join('\n');
 
         alert(
-          `Excel upload stopped.\n\nProduct Name and Category required.\nCategory must be exact.\n\nInvalid rows:\n${errorText}\n\nAllowed categories:\n${allowedCategories.join(
-            '\n'
-          )}`
+          `Excel upload stopped.\n\nProduct Name and Category required.\nCategory must exist in Admin Category list.\n\nInvalid rows:\n${errorText}\n\nAvailable categories:\n${categoryNames.join('\n')}`
         );
 
         setExcelUploading(false);
@@ -467,11 +440,7 @@ function AdminDashboard() {
     let error;
 
     if (editingProduct) {
-      const result = await supabase
-        .from('products')
-        .update(payload)
-        .eq('id', editingProduct.id);
-
+      const result = await supabase.from('products').update(payload).eq('id', editingProduct.id);
       error = result.error;
     } else {
       const result = await supabase.from('products').insert([payload]);
@@ -490,16 +459,10 @@ function AdminDashboard() {
   };
 
   const handleDelete = async (product) => {
-    const confirmDelete = window.confirm(
-      `Delete product "${product.product_name}"?`
-    );
-
+    const confirmDelete = window.confirm(`Delete product "${product.product_name}"?`);
     if (!confirmDelete) return;
 
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', product.id);
+    const { error } = await supabase.from('products').delete().eq('id', product.id);
 
     if (error) {
       alert(error.message);
@@ -509,11 +472,143 @@ function AdminDashboard() {
     fetchProducts();
   };
 
+  const addCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) return alert('Category name required');
+
+    const { error } = await supabase.from('categories').insert([{ name, status: 'Active' }]);
+
+    if (error) return alert(error.message);
+
+    setNewCategoryName('');
+    await fetchCategories();
+  };
+
+  const startEditCategory = (category) => {
+    setEditingCategoryId(category.id);
+    setEditingCategoryName(category.name);
+  };
+
+  const cancelEditCategory = () => {
+    setEditingCategoryId(null);
+    setEditingCategoryName('');
+  };
+
+  const saveEditCategory = async (category) => {
+    const newName = editingCategoryName.trim();
+    if (!newName) return alert('Category name required');
+
+    const oldName = category.name;
+
+    const { error } = await supabase.from('categories').update({ name: newName }).eq('id', category.id);
+    if (error) return alert(error.message);
+
+    await supabase.from('products').update({ category: newName }).eq('category', oldName);
+
+    cancelEditCategory();
+    await fetchCategorySetup();
+    await fetchProducts();
+  };
+
+  const deleteCategory = async (category) => {
+    if (!isOwner) return alert('Only owner can delete category.');
+
+    const usedInProduct = products.some((item) => item.category === category.name);
+
+    if (usedInProduct) {
+      alert('This category is used in products. First change/delete those products.');
+      return;
+    }
+
+    const confirmDelete = window.confirm(`Delete category "${category.name}"?`);
+    if (!confirmDelete) return;
+
+    const { error } = await supabase.from('categories').delete().eq('id', category.id);
+
+    if (error) return alert(error.message);
+
+    await fetchCategorySetup();
+  };
+
+  const addSubCategory = async () => {
+    const name = newSubCategoryName.trim();
+
+    if (!selectedCategoryForSub) return alert('Select category first');
+    if (!name) return alert('Sub Category name required');
+
+    const { error } = await supabase.from('sub_categories').insert([
+      {
+        category_id: selectedCategoryForSub,
+        name,
+        status: 'Active',
+      },
+    ]);
+
+    if (error) return alert(error.message);
+
+    setNewSubCategoryName('');
+    await fetchSubCategories();
+  };
+
+  const startEditSubCategory = (subCategory) => {
+    setEditingSubCategoryId(subCategory.id);
+    setEditingSubCategoryName(subCategory.name);
+    setEditingSubCategoryParentId(subCategory.category_id);
+  };
+
+  const cancelEditSubCategory = () => {
+    setEditingSubCategoryId(null);
+    setEditingSubCategoryName('');
+    setEditingSubCategoryParentId('');
+  };
+
+  const saveEditSubCategory = async (subCategory) => {
+    const newName = editingSubCategoryName.trim();
+    if (!newName) return alert('Sub Category name required');
+    if (!editingSubCategoryParentId) return alert('Select parent category');
+
+    const oldName = subCategory.name;
+
+    const { error } = await supabase
+      .from('sub_categories')
+      .update({
+        name: newName,
+        category_id: editingSubCategoryParentId,
+      })
+      .eq('id', subCategory.id);
+
+    if (error) return alert(error.message);
+
+    await supabase.from('products').update({ sub_category: newName }).eq('sub_category', oldName);
+
+    cancelEditSubCategory();
+    await fetchSubCategories();
+    await fetchProducts();
+  };
+
+  const deleteSubCategory = async (subCategory) => {
+    if (!isOwner) return alert('Only owner can delete sub category.');
+
+    const usedInProduct = products.some((item) => item.sub_category === subCategory.name);
+
+    if (usedInProduct) {
+      alert('This sub category is used in products. First change/delete those products.');
+      return;
+    }
+
+    const confirmDelete = window.confirm(`Delete sub category "${subCategory.name}"?`);
+    if (!confirmDelete) return;
+
+    const { error } = await supabase.from('sub_categories').delete().eq('id', subCategory.id);
+
+    if (error) return alert(error.message);
+
+    await fetchSubCategories();
+  };
+
   const updateEnquiryField = (id, field, value) => {
     setEnquiries((prev) =>
-      prev.map((item) =>
-        String(item.id) === String(id) ? { ...item, [field]: value } : item
-      )
+      prev.map((item) => (String(item.id) === String(id) ? { ...item, [field]: value } : item))
     );
   };
 
@@ -524,9 +619,7 @@ function AdminDashboard() {
       await fetch(ENQUIRY_API_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8',
-        },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'updateEnquiry',
           id: item.id,
@@ -558,17 +651,8 @@ function AdminDashboard() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <h1 className="text-3xl font-bold text-red-600">Access Denied</h1>
-
         <p>Your email is not authorized for MR Apex Admin Panel.</p>
-
-        <Button
-          onClick={async () => {
-            await supabase.auth.signOut();
-            window.location.href = '/admin-login';
-          }}
-        >
-          Logout
-        </Button>
+        <Button onClick={logout}>Logout</Button>
       </div>
     );
   }
@@ -586,44 +670,51 @@ function AdminDashboard() {
           <div>
             <h1 className="text-2xl font-bold">MR Apex Admin Dashboard</h1>
 
-            <div className="flex gap-2 mt-4">
-              <Button
-                variant={activeTab === 'products' ? 'default' : 'outline'}
-                onClick={() => setActiveTab('products')}
-              >
+            <div className="flex flex-wrap gap-2 mt-4">
+              <Button variant={activeTab === 'products' ? 'default' : 'outline'} onClick={() => setActiveTab('products')}>
                 Products
               </Button>
 
-              <Button
-                variant={activeTab === 'enquiries' ? 'default' : 'outline'}
-                onClick={() => setActiveTab('enquiries')}
-              >
+              <Button variant={activeTab === 'categories' ? 'default' : 'outline'} onClick={() => setActiveTab('categories')}>
+                Categories
+              </Button>
+
+              <Button variant={activeTab === 'enquiries' ? 'default' : 'outline'} onClick={() => setActiveTab('enquiries')}>
                 Enquiries ({enquiries.length})
               </Button>
+              <Button
+  variant="outline"
+  onClick={() => {
+    window.location.href = '/admin/quotations';
+  }}
+>
+  Quotations
+</Button>
             </div>
 
             <p className="text-gray-500 mt-2">
-              Manage products, images, enquiries and business follow-ups
+              Logged in: {currentUserEmail} {isOwner ? '(Owner)' : isPartner ? '(Partner)' : ''}
             </p>
           </div>
 
-          <Button onClick={logout} variant="outline">
-            Logout
-          </Button>
-        </div>
+          <div className="flex gap-2">
+  <Button onClick={sendTestEmail} variant="outline">
+    Send Test Email
+  </Button>
+
+  <Button onClick={logout} variant="outline">
+    Logout
+  </Button>
+</div>
+</div>
 
         {activeTab === 'products' && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
               {summaryCards.map((card) => (
-                <div
-                  key={card.label}
-                  className="border rounded-xl p-4 bg-slate-50 shadow-sm"
-                >
+                <div key={card.label} className="border rounded-xl p-4 bg-slate-50 shadow-sm">
                   <p className="text-sm text-slate-500">{card.label}</p>
-                  <p className="text-2xl font-bold text-slate-900">
-                    {card.value}
-                  </p>
+                  <p className="text-2xl font-bold text-slate-900">{card.value}</p>
                 </div>
               ))}
             </div>
@@ -632,21 +723,9 @@ function AdminDashboard() {
               <div className="flex flex-wrap gap-3">
                 <Button onClick={openAddForm}>Add Product</Button>
 
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  id="excelUpload"
-                  className="hidden"
-                  onChange={handleExcelUpload}
-                />
+                <input type="file" accept=".xlsx,.xls" id="excelUpload" className="hidden" onChange={handleExcelUpload} />
 
-                <Button
-                  variant="outline"
-                  disabled={excelUploading}
-                  onClick={() =>
-                    document.getElementById('excelUpload').click()
-                  }
-                >
+                <Button variant="outline" disabled={excelUploading} onClick={() => document.getElementById('excelUpload').click()}>
                   {excelUploading ? 'Uploading Excel...' : 'Upload Excel'}
                 </Button>
               </div>
@@ -663,10 +742,7 @@ function AdminDashboard() {
             </div>
 
             <div className="mb-5">
-              <p className="text-sm font-medium text-gray-600 mb-2">
-                Pending Details Filter
-              </p>
-
+              <p className="text-sm font-medium text-gray-600 mb-2">Pending Details Filter</p>
               <div className="flex flex-wrap gap-2">
                 {filterButtons.map((filter) => (
                   <button
@@ -691,161 +767,86 @@ function AdminDashboard() {
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
             <div className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-5">
-                <h2 className="text-xl font-bold">
-                  {editingProduct ? 'Edit Product' : 'Add New Product'}
-                </h2>
-
-                <button
-                  type="button"
-                  onClick={closeForm}
-                  className="text-2xl leading-none"
-                >
+                <h2 className="text-xl font-bold">{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
+                <button type="button" onClick={closeForm} className="text-2xl leading-none">
                   ×
                 </button>
               </div>
 
-              <form
-                onSubmit={handleSubmit}
-                className="grid grid-cols-1 md:grid-cols-2 gap-4"
-              >
+              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Product Name
-                  </label>
-                  <input
-                    name="product_name"
-                    value={form.product_name}
-                    onChange={handleChange}
-                    className="w-full border rounded-lg px-3 py-2"
-                    required
-                  />
+                  <label className="block text-sm font-medium mb-1">Product Name</label>
+                  <input name="product_name" value={form.product_name} onChange={handleChange} className="w-full border rounded-lg px-3 py-2" required />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Part Number
-                  </label>
-                  <input
-                    name="part_number"
-                    value={form.part_number}
-                    onChange={handleChange}
-                    className="w-full border rounded-lg px-3 py-2"
-                  />
+                  <label className="block text-sm font-medium mb-1">Part Number</label>
+                  <input name="part_number" value={form.part_number} onChange={handleChange} className="w-full border rounded-lg px-3 py-2" />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Category
-                  </label>
-                  <select
-                    name="category"
-                    value={form.category}
-                    onChange={handleChange}
-                    className="w-full border rounded-lg px-3 py-2"
-                    required
-                  >
+                  <label className="block text-sm font-medium mb-1">Category</label>
+                  <select name="category" value={form.category} onChange={handleChange} className="w-full border rounded-lg px-3 py-2" required>
                     <option value="">Select Category</option>
-                    {allowedCategories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Sub Category
-                  </label>
-                  <input
+                  <label className="block text-sm font-medium mb-1">Sub Category</label>
+                  <select
                     name="sub_category"
                     value={form.sub_category}
                     onChange={handleChange}
                     className="w-full border rounded-lg px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Make
-                  </label>
-                  <input
-                    name="make"
-                    value={form.make}
-                    onChange={handleChange}
-                    className="w-full border rounded-lg px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Status
-                  </label>
-                  <select
-                    name="status"
-                    value={form.status}
-                    onChange={handleChange}
-                    className="w-full border rounded-lg px-3 py-2"
+                    disabled={!form.category}
                   >
+                    <option value="">{form.category ? 'Select Sub Category' : 'Select category first'}</option>
+                    {formSubCategories.map((subCategory) => (
+                      <option key={subCategory.id} value={subCategory.name}>
+                        {subCategory.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Make</label>
+                  <input name="make" value={form.make} onChange={handleChange} className="w-full border rounded-lg px-3 py-2" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Status</label>
+                  <select name="status" value={form.status} onChange={handleChange} className="w-full border rounded-lg px-3 py-2">
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                   </select>
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-1">
-                    Product Image
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Product Image</label>
+                  <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full border rounded-lg px-3 py-2" />
 
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="w-full border rounded-lg px-3 py-2"
-                  />
-
-                  {uploading && (
-                    <p className="text-sm text-blue-600 mt-2">
-                      Uploading image...
-                    </p>
-                  )}
+                  {uploading && <p className="text-sm text-blue-600 mt-2">Uploading image...</p>}
 
                   {form.image_url && (
                     <div className="mt-3">
-                      <img
-                        src={form.image_url}
-                        alt="Preview"
-                        className="w-32 h-32 object-contain border rounded-lg bg-white"
-                      />
-
-                      <input
-                        name="image_url"
-                        value={form.image_url}
-                        onChange={handleChange}
-                        className="w-full border rounded-lg px-3 py-2 mt-3"
-                        placeholder="Image URL"
-                      />
+                      <img src={form.image_url} alt="Preview" className="w-32 h-32 object-contain border rounded-lg bg-white" />
+                      <input name="image_url" value={form.image_url} onChange={handleChange} className="w-full border rounded-lg px-3 py-2 mt-3" placeholder="Image URL" />
                     </div>
                   )}
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    name="description"
-                    value={form.description}
-                    onChange={handleChange}
-                    className="w-full border rounded-lg px-3 py-2 min-h-[100px]"
-                  />
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea name="description" value={form.description} onChange={handleChange} className="w-full border rounded-lg px-3 py-2 min-h-[100px]" />
                 </div>
 
-                {msg && (
-                  <div className="md:col-span-2 text-red-600 text-sm">
-                    {msg}
-                  </div>
-                )}
+                {msg && <div className="md:col-span-2 text-red-600 text-sm">{msg}</div>}
 
                 <div className="md:col-span-2 flex justify-end gap-3">
                   <Button type="button" variant="outline" onClick={closeForm}>
@@ -853,11 +854,7 @@ function AdminDashboard() {
                   </Button>
 
                   <Button type="submit" disabled={saving || uploading}>
-                    {saving
-                      ? 'Saving...'
-                      : editingProduct
-                        ? 'Update Product'
-                        : 'Save Product'}
+                    {saving ? 'Saving...' : editingProduct ? 'Update Product' : 'Save Product'}
                   </Button>
                 </div>
               </form>
@@ -871,17 +868,9 @@ function AdminDashboard() {
           ) : (
             <>
               <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-gray-600">
-                <p>
-                  Showing {filteredProducts.length} of {products.length}{' '}
-                  products
-                </p>
-
+                <p>Showing {filteredProducts.length} of {products.length} products</p>
                 {searchText && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchText('')}
-                    className="text-slate-900 underline text-left"
-                  >
+                  <button type="button" onClick={() => setSearchText('')} className="text-slate-900 underline text-left">
                     Clear search
                   </button>
                 )}
@@ -905,101 +894,40 @@ function AdminDashboard() {
 
                   <tbody>
                     {filteredProducts.map((item, index) => (
-                      <tr
-                        key={item.id}
-                        className={
-                          index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                        }
-                      >
+                      <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                         <td className="p-3 border-t">
                           {item.image_url ? (
-                            <img
-                              src={item.image_url}
-                              alt={item.product_name || 'Product'}
-                              className="w-16 h-16 object-contain border rounded-lg bg-white"
-                            />
+                            <img src={item.image_url} alt={item.product_name || 'Product'} className="w-16 h-16 object-contain border rounded-lg bg-white" />
                           ) : (
                             <BlankBadge text="No Image" />
                           )}
                         </td>
 
-                        <td className="p-3 border-t font-medium">
-                          {isBlank(item.product_name) ? (
-                            <BlankBadge text="Missing" />
-                          ) : (
-                            item.product_name
-                          )}
-                        </td>
-
-                        <td className="p-3 border-t">
-                          {isBlank(item.category) ? (
-                            <BlankBadge text="Missing" />
-                          ) : (
-                            item.category
-                          )}
-                        </td>
-
-                        <td className="p-3 border-t">
-                          {isBlank(item.sub_category) ? (
-                            <BlankBadge text="Missing" />
-                          ) : (
-                            item.sub_category
-                          )}
-                        </td>
-
-                        <td className="p-3 border-t">
-                          {isBlank(item.part_number) ? (
-                            <BlankBadge text="Missing" />
-                          ) : (
-                            item.part_number
-                          )}
-                        </td>
-
-                        <td className="p-3 border-t">
-                          {isBlank(item.make) ? (
-                            <BlankBadge text="Missing" />
-                          ) : (
-                            item.make
-                          )}
-                        </td>
+                        <td className="p-3 border-t font-medium">{isBlank(item.product_name) ? <BlankBadge text="Missing" /> : item.product_name}</td>
+                        <td className="p-3 border-t">{isBlank(item.category) ? <BlankBadge text="Missing" /> : item.category}</td>
+                        <td className="p-3 border-t">{isBlank(item.sub_category) ? <BlankBadge text="Missing" /> : item.sub_category}</td>
+                        <td className="p-3 border-t">{isBlank(item.part_number) ? <BlankBadge text="Missing" /> : item.part_number}</td>
+                        <td className="p-3 border-t">{isBlank(item.make) ? <BlankBadge text="Missing" /> : item.make}</td>
 
                         <td className="p-3 border-t max-w-[260px]">
-                          {isBlank(item.description) ? (
-                            <BlankBadge text="Missing" />
-                          ) : (
-                            <span className="block line-clamp-2">
-                              {item.description}
-                            </span>
-                          )}
+                          {isBlank(item.description) ? <BlankBadge text="Missing" /> : <span className="block line-clamp-2">{item.description}</span>}
                         </td>
 
                         <td className="p-3 border-t">
                           {item.status === 'Inactive' ? (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold text-orange-700 bg-orange-100 rounded">
-                              Inactive
-                            </span>
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-orange-700 bg-orange-100 rounded">Inactive</span>
                           ) : (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded">
-                              Active
-                            </span>
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded">Active</span>
                           )}
                         </td>
 
                         <td className="p-3 border-t">
                           <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openEditForm(item)}
-                            >
+                            <Button size="sm" variant="outline" onClick={() => openEditForm(item)}>
                               Edit
                             </Button>
 
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDelete(item)}
-                            >
+                            <Button size="sm" variant="destructive" onClick={() => handleDelete(item)}>
                               Delete
                             </Button>
                           </div>
@@ -1019,18 +947,175 @@ function AdminDashboard() {
               </div>
             </>
           )
+        ) : activeTab === 'categories' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="border rounded-xl p-5 bg-white">
+              <h2 className="text-xl font-bold mb-2">Manage Categories</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Partner category add/edit कर सकता है. Delete सिर्फ owner कर सकता है.
+              </p>
+
+              <div className="flex gap-2 mb-5">
+                <input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="Example: Bearings" className="w-full border rounded-lg px-3 py-2" />
+                <Button onClick={addCategory}>Add</Button>
+              </div>
+
+              <div className="border rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-900 text-white">
+                    <tr>
+                      <th className="p-3 text-left">Category</th>
+                      <th className="p-3 text-left">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categories.map((category) => (
+                      <tr key={category.id}>
+                        <td className="p-3 border-t">
+                          {editingCategoryId === category.id ? (
+                            <input value={editingCategoryName} onChange={(e) => setEditingCategoryName(e.target.value)} className="w-full border rounded-lg px-3 py-2" />
+                          ) : (
+                            category.name
+                          )}
+                        </td>
+
+                        <td className="p-3 border-t">
+                          {editingCategoryId === category.id ? (
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={() => saveEditCategory(category)}>
+                                Save
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={cancelEditCategory}>
+                                Cancel
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={() => startEditCategory(category)}>
+                                Edit
+                              </Button>
+
+                              {isOwner && (
+                                <Button size="sm" variant="destructive" onClick={() => deleteCategory(category)}>
+                                  Delete
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="border rounded-xl p-5 bg-white">
+              <h2 className="text-xl font-bold mb-2">Manage Sub Categories</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Partner sub category add/edit कर सकता है. Delete सिर्फ owner कर सकता है.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-5">
+                <select value={selectedCategoryForSub} onChange={(e) => setSelectedCategoryForSub(e.target.value)} className="border rounded-lg px-3 py-2">
+                  <option value="">Select Category</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+
+                <input value={newSubCategoryName} onChange={(e) => setNewSubCategoryName(e.target.value)} placeholder="Example: Ball Bearing" className="border rounded-lg px-3 py-2" />
+
+                <Button onClick={addSubCategory}>Add Sub Category</Button>
+              </div>
+
+              <div className="border rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-900 text-white">
+                    <tr>
+                      <th className="p-3 text-left">Category</th>
+                      <th className="p-3 text-left">Sub Category</th>
+                      <th className="p-3 text-left">Action</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {subCategories.map((subCategory) => {
+                      const parent = categories.find((category) => category.id === subCategory.category_id);
+
+                      return (
+                        <tr key={subCategory.id}>
+                          <td className="p-3 border-t">
+                            {editingSubCategoryId === subCategory.id ? (
+                              <select value={editingSubCategoryParentId} onChange={(e) => setEditingSubCategoryParentId(e.target.value)} className="w-full border rounded-lg px-3 py-2">
+                                {categories.map((category) => (
+                                  <option key={category.id} value={category.id}>
+                                    {category.name}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              parent?.name || '-'
+                            )}
+                          </td>
+
+                          <td className="p-3 border-t">
+                            {editingSubCategoryId === subCategory.id ? (
+                              <input value={editingSubCategoryName} onChange={(e) => setEditingSubCategoryName(e.target.value)} className="w-full border rounded-lg px-3 py-2" />
+                            ) : (
+                              subCategory.name
+                            )}
+                          </td>
+
+                          <td className="p-3 border-t">
+                            {editingSubCategoryId === subCategory.id ? (
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={() => saveEditSubCategory(subCategory)}>
+                                  Save
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={cancelEditSubCategory}>
+                                  Cancel
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Button size="sm" variant="outline" onClick={() => startEditSubCategory(subCategory)}>
+                                  Edit
+                                </Button>
+
+                                {isOwner && (
+                                  <Button size="sm" variant="destructive" onClick={() => deleteSubCategory(subCategory)}>
+                                    Delete
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {subCategories.length === 0 && (
+                      <tr>
+                        <td colSpan="3" className="text-center p-6">
+                          No sub categories found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         ) : (
           <div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
               {enquiryCards.map((card) => (
-                <div
-                  key={card.label}
-                  className="border rounded-xl p-4 bg-slate-50 shadow-sm"
-                >
+                <div key={card.label} className="border rounded-xl p-4 bg-slate-50 shadow-sm">
                   <p className="text-sm text-slate-500">{card.label}</p>
-                  <p className="text-2xl font-bold text-slate-900">
-                    {card.value}
-                  </p>
+                  <p className="text-2xl font-bold text-slate-900">{card.value}</p>
                 </div>
               ))}
             </div>
@@ -1039,9 +1124,7 @@ function AdminDashboard() {
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
                 <div>
                   <h2 className="text-xl font-bold">Enquiries CRM</h2>
-                  <p className="text-sm text-gray-500">
-                    Track enquiry status, quotation stage and follow-ups
-                  </p>
+                  <p className="text-sm text-gray-500">Track enquiry status, quotation stage and follow-ups</p>
                 </div>
 
                 <Button variant="outline" onClick={fetchEnquiries}>
@@ -1065,9 +1148,7 @@ function AdminDashboard() {
                     type="button"
                     onClick={() => setEnquiryStatusFilter('all')}
                     className={`px-3 py-2 rounded-lg text-sm border ${
-                      enquiryStatusFilter === 'all'
-                        ? 'bg-slate-900 text-white border-slate-900'
-                        : 'bg-white text-slate-700 border-slate-300'
+                      enquiryStatusFilter === 'all' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-300'
                     }`}
                   >
                     All ({enquiries.length})
@@ -1079,18 +1160,10 @@ function AdminDashboard() {
                       type="button"
                       onClick={() => setEnquiryStatusFilter(status)}
                       className={`px-3 py-2 rounded-lg text-sm border ${
-                        enquiryStatusFilter === status
-                          ? 'bg-slate-900 text-white border-slate-900'
-                          : 'bg-white text-slate-700 border-slate-300'
+                        enquiryStatusFilter === status ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-300'
                       }`}
                     >
-                      {status} (
-                      {
-                        enquiries.filter(
-                          (item) => (item.status || 'New') === status
-                        ).length
-                      }
-                      )
+                      {status} ({enquiries.filter((item) => (item.status || 'New') === status).length})
                     </button>
                   ))}
                 </div>
@@ -1117,60 +1190,30 @@ function AdminDashboard() {
 
                     <tbody>
                       {filteredEnquiries.map((item, index) => (
-                        <tr
-                          key={item.id || index}
-                          className={
-                            index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                          }
-                        >
-                          <td className="p-3 border-t min-w-[150px]">
-                            {item.dateTime
-                              ? new Date(item.dateTime).toLocaleString()
-                              : ''}
-                          </td>
+                        <tr key={item.id || index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                          <td className="p-3 border-t min-w-[150px]">{item.dateTime ? new Date(item.dateTime).toLocaleString() : ''}</td>
 
                           <td className="p-3 border-t min-w-[220px]">
                             <p className="font-semibold">{item.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {item.companyName}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {item.address}
-                            </p>
+                            <p className="text-xs text-gray-500">{item.companyName}</p>
+                            <p className="text-xs text-gray-500">{item.address}</p>
                           </td>
 
                           <td className="p-3 border-t min-w-[180px]">
                             <p>{item.contactNumber}</p>
-                            <p className="text-xs text-gray-500">
-                              {item.emailId}
-                            </p>
+                            <p className="text-xs text-gray-500">{item.emailId}</p>
                           </td>
 
                           <td className="p-3 border-t min-w-[220px]">
-                            <p className="font-medium">
-                              {item.productRequired}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Part No: {item.partNumber || '-'}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Qty: {item.quantity || '-'}
-                            </p>
-                            {item.message && (
-                              <p className="text-xs text-gray-500 mt-1">
-                                Msg: {item.message}
-                              </p>
-                            )}
+                            <p className="font-medium">{item.productRequired}</p>
+                            <p className="text-xs text-gray-500">Part No: {item.partNumber || '-'}</p>
+                            <p className="text-xs text-gray-500">Qty: {item.quantity || '-'}</p>
+                            {item.message && <p className="text-xs text-gray-500 mt-1">Msg: {item.message}</p>}
                           </td>
 
                           <td className="p-3 border-t">
                             {item.referenceImage ? (
-                              <a
-                                href={item.referenceImage}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-blue-600 underline"
-                              >
+                              <a href={item.referenceImage} target="_blank" rel="noreferrer" className="text-blue-600 underline">
                                 View
                               </a>
                             ) : (
@@ -1179,17 +1222,7 @@ function AdminDashboard() {
                           </td>
 
                           <td className="p-3 border-t min-w-[160px]">
-                            <select
-                              value={item.status || 'New'}
-                              onChange={(e) =>
-                                updateEnquiryField(
-                                  item.id,
-                                  'status',
-                                  e.target.value
-                                )
-                              }
-                              className="w-full border rounded-lg px-2 py-2"
-                            >
+                            <select value={item.status || 'New'} onChange={(e) => updateEnquiryField(item.id, 'status', e.target.value)} className="w-full border rounded-lg px-2 py-2">
                               {enquiryStatuses.map((status) => (
                                 <option key={status} value={status}>
                                   {status}
@@ -1201,13 +1234,7 @@ function AdminDashboard() {
                           <td className="p-3 border-t min-w-[150px]">
                             <input
                               value={item.assignedTo || ''}
-                              onChange={(e) =>
-                                updateEnquiryField(
-                                  item.id,
-                                  'assignedTo',
-                                  e.target.value
-                                )
-                              }
+                              onChange={(e) => updateEnquiryField(item.id, 'assignedTo', e.target.value)}
                               placeholder="Ravi / Partner"
                               className="w-full border rounded-lg px-2 py-2"
                             />
@@ -1216,27 +1243,15 @@ function AdminDashboard() {
                           <td className="p-3 border-t min-w-[220px]">
                             <textarea
                               value={item.remarks || ''}
-                              onChange={(e) =>
-                                updateEnquiryField(
-                                  item.id,
-                                  'remarks',
-                                  e.target.value
-                                )
-                              }
+                              onChange={(e) => updateEnquiryField(item.id, 'remarks', e.target.value)}
                               placeholder="Follow-up remarks"
                               className="w-full border rounded-lg px-2 py-2 min-h-[70px]"
                             />
                           </td>
 
                           <td className="p-3 border-t">
-                            <Button
-                              size="sm"
-                              onClick={() => saveEnquiryUpdate(item)}
-                              disabled={updatingEnquiryId === item.id}
-                            >
-                              {updatingEnquiryId === item.id
-                                ? 'Saving...'
-                                : 'Save'}
+                            <Button size="sm" onClick={() => saveEnquiryUpdate(item)} disabled={updatingEnquiryId === item.id}>
+                              {updatingEnquiryId === item.id ? 'Saving...' : 'Save'}
                             </Button>
                           </td>
                         </tr>

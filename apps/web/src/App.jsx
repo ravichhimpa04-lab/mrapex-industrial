@@ -13,6 +13,10 @@ import AdminLogin from '@/pages/AdminLogin.jsx';
 import AdminDashboard from '@/pages/AdminDashboard.jsx';
 import ProtectedAdmin from '@/components/ProtectedAdmin.jsx';
 
+import QuotationsPage from '@/pages/QuotationsPage.jsx';
+import CreateQuotationPage from '@/pages/CreateQuotationPage.jsx';
+import QuotationDetailPage from '@/pages/QuotationDetailPage.jsx';
+
 function App() {
   return (
     <Router>
@@ -35,6 +39,33 @@ function App() {
             </ProtectedAdmin>
           }
         />
+
+        <Route
+          path="/admin/quotations"
+          element={
+            <ProtectedAdmin>
+              <QuotationsPage />
+            </ProtectedAdmin>
+          }
+        />
+
+        <Route
+          path="/admin/quotations/new"
+          element={
+            <ProtectedAdmin>
+              <CreateQuotationPage />
+            </ProtectedAdmin>
+          }
+        />
+
+        <Route
+  path="/admin/quotations/:id"
+  element={
+    <ProtectedAdmin>
+      <QuotationDetailPage />
+    </ProtectedAdmin>
+  }
+/>
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

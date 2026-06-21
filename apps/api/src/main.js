@@ -16,7 +16,7 @@ app.set('trust proxy', true);
 process.on('uncaughtException', (error) => {
 	logger.error('Uncaught exception:', error);
 });
-  
+
 process.on('unhandledRejection', (reason, promise) => {
 	logger.error('Unhandled rejection at:', promise, 'reason:', reason);
 });
@@ -29,23 +29,27 @@ process.on('SIGINT', async () => {
 process.on('SIGTERM', async () => {
 	logger.info('SIGTERM signal received');
 
-	await new Promise(resolve => setTimeout(resolve, 3000));
+	await new Promise((resolve) => setTimeout(resolve, 3000));
 
 	logger.info('Exiting');
 	process.exit();
 });
 
 app.use(helmet());
+
 app.use(cors({
-	origin: process.env.CORS_ORIGIN,
+	origin: true,
 	credentials: true,
 }));
+
 app.use(morgan('combined'));
 app.use(globalRateLimit);
+
 app.use(express.json({
 	limit: BodyLimit,
 }));
-app.use(express.urlencoded({ 
+
+app.use(express.urlencoded({
 	extended: true,
 	limit: BodyLimit,
 }));
