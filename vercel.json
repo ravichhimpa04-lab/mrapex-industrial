@@ -21,7 +21,9 @@
       "destination": "/"
     },
     {
-      "source": "/admin",
+  "rewrites": [
+    {
+      "source": "/(.*)",
       "destination": "/"
     }
   ]
