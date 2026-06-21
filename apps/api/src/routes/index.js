@@ -1,3 +1,4 @@
+const express = require('express');
 import { Router } from 'express';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
@@ -93,26 +94,8 @@ function numberToWordsIndian(num) {
   if (n === 0) return 'Rupees Zero Only';
 
   const ones = [
-    '',
-    'One',
-    'Two',
-    'Three',
-    'Four',
-    'Five',
-    'Six',
-    'Seven',
-    'Eight',
-    'Nine',
-    'Ten',
-    'Eleven',
-    'Twelve',
-    'Thirteen',
-    'Fourteen',
-    'Fifteen',
-    'Sixteen',
-    'Seventeen',
-    'Eighteen',
-    'Nineteen',
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
   ];
 
   const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
@@ -227,7 +210,7 @@ router.get('/test-email-check', async (req, res) => {
   return res.json({
     success: true,
     message: 'Email test route is available',
-    from: process.env.SMTP_FROM_EMAIL,
+    from: process.env.SMTP_FROM,
   });
 });
 
@@ -279,6 +262,7 @@ router.post('/send-test-email', async (req, res) => {
     });
   }
 });
+
 router.post('/quotations/:id/send-test', (req, res) => {
   return res.json({
     success: true,
@@ -287,6 +271,7 @@ router.post('/quotations/:id/send-test', (req, res) => {
   });
 });
 
+// 1. PDF Generation Route (Fixed with Render flags)
 router.post('/quotations/:id/pdf', async (req, res) => {
   let browser;
 
@@ -330,9 +315,15 @@ router.post('/quotations/:id/pdf', async (req, res) => {
 
     const html = buildQuotationHTML(quotation, items || []);
 
+    // Render environment compatible parameters added here
     browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu'
+      ],
     });
 
     const page = await browser.newPage();
@@ -371,6 +362,7 @@ router.post('/quotations/:id/pdf', async (req, res) => {
   }
 });
 
+// 2. Email Route (Fixed with Render flags and Admin BCC/Copy)
 router.post('/quotations/:id/send', async (req, res) => {
   let browser;
 
@@ -421,9 +413,15 @@ router.post('/quotations/:id/send', async (req, res) => {
 
     const html = buildQuotationHTML(quotation, items || []);
 
+    // Render environment compatible parameters added here
     browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu'
+      ],
     });
 
     const page = await browser.newPage();
@@ -445,12 +443,12 @@ router.post('/quotations/:id/send', async (req, res) => {
 
     await browser.close();
 
-
     const quotationFileName = `${quotation.quotation_no.replaceAll('/', '-')}.pdf`;
 
     const mailInfo = await mailTransporter.sendMail({
       from: `"MR Apex Industrial Components" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
       to: quotation.email,
+      bcc: allowedEmails.join(', '), // Dono admins ko security copy silently chali jayegi
       subject: `Quotation ${quotation.quotation_no} - MR Apex Industrial Components`,
       html: `
         <p>Dear ${quotation.customer_name || 'Customer'},</p>
@@ -480,19 +478,19 @@ router.post('/quotations/:id/send', async (req, res) => {
     console.log('Quotation mail sent info:', mailInfo);
 
     const { error: updateError } = await supabase
-  .from('quotations')
-  .update({
-    status: true,
-    sent_at: new Date().toISOString(),
-  })
-  .eq('id', id);
+      .from('quotations')
+      .update({
+        status: true,
+        sent_at: new Date().toISOString(),
+      })
+      .eq('id', id);
 
-if (updateError) {
-  return res.status(500).json({
-    success: false,
-    error: updateError.message,
-  });
-}
+    if (updateError) {
+      return res.status(500).json({
+        success: false,
+        error: updateError.message,
+      });
+    }
 
     return res.json({
       success: true,
