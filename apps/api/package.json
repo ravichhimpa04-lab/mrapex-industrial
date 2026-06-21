@@ -5,7 +5,8 @@
   "type": "module",
   "main": "src/main.js",
   "scripts": {
-    "start": "node src/main.js"
+    "start": "node src/main.js",
+    "postinstall": "npx puppeteer browsers install chrome"
   },
   "dependencies": {
     "cors": "^2.8.5",
