@@ -40,6 +40,9 @@ const mailTransporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  connectionTimeout: 30000,
+  greetingTimeout: 30000,
+  socketTimeout: 30000,
 });
 
 const getAuthenticatedAdmin = async (req) => {
@@ -74,78 +77,59 @@ function escapeHtml(value = '') {
     .replaceAll("'", '&#039;');
 }
 
-function formatCurrency(amount) {
-  return `₹ ${Number(amount || 0).toLocaleString('en-IN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
+async function launchPdfBrowser() {
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
 
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function numberToWordsIndian(num) {
-  const n = Math.round(Number(num || 0));
-  if (n === 0) return 'Rupees Zero Only';
-
-  const ones = [
-    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
-    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
-  ];
-
-  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-  const twoDigit = (x) => {
-    if (x < 20) return ones[x];
-    return `${tens[Math.floor(x / 10)]} ${ones[x % 10]}`.trim();
+  const launchOptions = {
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-zygote',
+      '--single-process',
+    ],
   };
 
-  const threeDigit = (x) => {
-    const h = Math.floor(x / 100);
-    const r = x % 100;
-    return `${h ? `${ones[h]} Hundred ` : ''}${r ? twoDigit(r) : ''}`.trim();
-  };
+  if (executablePath) {
+    launchOptions.executablePath = executablePath;
+  }
 
-  let x = n;
-  const crore = Math.floor(x / 10000000);
-  x %= 10000000;
-  const lakh = Math.floor(x / 100000);
-  x %= 100000;
-  const thousand = Math.floor(x / 1000);
-  x %= 1000;
-  const hundred = x;
-
-  const parts = [];
-  if (crore) parts.push(`${threeDigit(crore)} Crore`);
-  if (lakh) parts.push(`${threeDigit(lakh)} Lakh`);
-  if (thousand) parts.push(`${threeDigit(thousand)} Thousand`);
-  if (hundred) parts.push(threeDigit(hundred));
-
-  return `Rupees ${parts.join(' ')} Only`;
+  return puppeteer.launch(launchOptions);
 }
 
-function imageBase64(fileName) {
+async function makePdfBuffer(html) {
+  const browser = await launchPdfBrowser();
+
   try {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    const filePath = path.join(__dirname, '../assets', fileName);
+    const page = await browser.newPage();
 
-    if (!fs.existsSync(filePath)) return '';
+    await page.setContent(html, {
+      waitUntil: 'networkidle0',
+      timeout: 60000,
+    });
 
-    return `data:image/png;base64,${fs.readFileSync(filePath).toString('base64')}`;
-  } catch {
-    return '';
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: {
+        top: '0mm',
+        right: '0mm',
+        bottom: '0mm',
+        left: '0mm',
+      },
+    });
+
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
   }
 }
 
 router.get('/health', healthCheck);
+
 router.get('/route-test', (req, res) => {
   return res.json({
     success: true,
@@ -237,9 +221,8 @@ router.post('/send-test-email', async (req, res) => {
     }
 
     await mailTransporter.sendMail({
-      from: '"MR Apex Industrial Components" <sales@mrapexindustrial.in>',
-      sender: 'admin@mrapexindustrial.in',
-      replyTo: 'sales@mrapexindustrial.in',
+      from: `"MR Apex Industrial Components" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      replyTo: process.env.SMTP_FROM || process.env.SMTP_USER,
       to,
       subject: 'MR Apex Email Test',
       html: `
@@ -273,10 +256,7 @@ router.post('/quotations/:id/send-test', (req, res) => {
   });
 });
 
-// 1. PDF Generation Route (Fixed with Render flags)
 router.post('/quotations/:id/pdf', async (req, res) => {
-  let browser;
-
   try {
     const auth = await getAuthenticatedAdmin(req);
 
@@ -316,49 +296,17 @@ router.post('/quotations/:id/pdf', async (req, res) => {
     }
 
     const html = buildQuotationHTML(quotation, items || []);
+    const pdfFile = await makePdfBuffer(html);
+    const quotationFileName = `${quotation.quotation_no.replaceAll('/', '-')}.pdf`;
 
-   // Render environment compatible launch settings
-    browser = await puppeteer.launch({
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
-  headless: true,
-  args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-gpu',
-    '--no-zygote',
-    '--single-process'
-  ]
-});
-
-    const page = await browser.newPage();
-
-    await page.setContent(html, {
-      waitUntil: 'networkidle0',
-    });
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '0mm',
-        right: '0mm',
-        bottom: '0mm',
-        left: '0mm',
-      },
-    });
-
-    await browser.close();
-
+    res.status(200);
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${quotation.quotation_no.replaceAll('/', '-')}.pdf"`
-    );
+    res.setHeader('Content-Length', pdfFile.length);
+    res.setHeader('Content-Disposition', `attachment; filename="${quotationFileName}"`);
 
-    return res.send(pdfBuffer);
+    return res.end(pdfFile);
   } catch (error) {
-    if (browser) await browser.close();
+    console.error('PDF GENERATION ERROR:', error);
 
     return res.status(500).json({
       success: false,
@@ -367,14 +315,15 @@ router.post('/quotations/:id/pdf', async (req, res) => {
   }
 });
 
-// 2. Email Route (Fixed and Complete)
 router.post('/quotations/:id/send', async (req, res) => {
-  let browser;
-
   try {
     const auth = await getAuthenticatedAdmin(req);
+
     if (auth.errorStatus) {
-      return res.status(auth.errorStatus).json({ success: false, error: auth.errorMessage });
+      return res.status(auth.errorStatus).json({
+        success: false,
+        error: auth.errorMessage,
+      });
     }
 
     const { id } = req.params;
@@ -386,11 +335,17 @@ router.post('/quotations/:id/send', async (req, res) => {
       .single();
 
     if (quotationError || !quotation) {
-      return res.status(404).json({ success: false, error: 'Quotation not found' });
+      return res.status(404).json({
+        success: false,
+        error: 'Quotation not found',
+      });
     }
 
     if (!quotation.email) {
-      return res.status(400).json({ success: false, error: 'Customer email not found' });
+      return res.status(400).json({
+        success: false,
+        error: 'Customer email not found',
+      });
     }
 
     const { data: items, error: itemsError } = await supabase
@@ -400,35 +355,14 @@ router.post('/quotations/:id/send', async (req, res) => {
       .order('created_at', { ascending: true });
 
     if (itemsError) {
-      return res.status(500).json({ success: false, error: itemsError.message });
+      return res.status(500).json({
+        success: false,
+        error: itemsError.message,
+      });
     }
 
     const html = buildQuotationHTML(quotation, items || []);
-
-    browser = await puppeteer.launch({
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
-  headless: true,
-  args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-gpu',
-    '--no-zygote',
-    '--single-process'
-  ]
-});
-
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
-    });
-
-    await browser.close();
-
+    const pdfFile = await makePdfBuffer(html);
     const quotationFileName = `${quotation.quotation_no.replaceAll('/', '-')}.pdf`;
 
     await mailTransporter.sendMail({
@@ -436,20 +370,41 @@ router.post('/quotations/:id/send', async (req, res) => {
       to: quotation.email,
       bcc: allowedEmails.join(', '),
       subject: `Quotation ${quotation.quotation_no} - MR Apex Industrial Components`,
-      html: `<p>Dear ${quotation.customer_name || 'Customer'},</p>
-             <p>Please find attached our quotation <b>${quotation.quotation_no}</b>.</p>
-             <p>Regards,<br/><b>MR Apex Industrial Components</b></p>`,
-      attachments: [{ filename: quotationFileName, content: pdfBuffer, contentType: 'application/pdf' }],
+      html: `
+        <div style="font-family: Arial, sans-serif; color:#111827;">
+          <p>Dear ${escapeHtml(quotation.customer_name || 'Customer')},</p>
+          <p>Please find attached our quotation <b>${escapeHtml(quotation.quotation_no)}</b>.</p>
+          <p>Regards,<br/><b>MR Apex Industrial Components</b></p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: quotationFileName,
+          content: pdfFile,
+          contentType: 'application/pdf',
+        },
+      ],
     });
 
-    await supabase.from('quotations').update({ status: true, sent_at: new Date().toISOString() }).eq('id', id);
+    await supabase
+      .from('quotations')
+      .update({
+        status: 'Sent',
+        sent_at: new Date().toISOString(),
+      })
+      .eq('id', id);
 
-    return res.json({ success: true, message: 'Email sent successfully' });
-
+    return res.json({
+      success: true,
+      message: 'Email sent successfully',
+    });
   } catch (error) {
-    if (browser) await browser.close();
-    console.error("DEBUG ERROR STACK:", error);
-    return res.status(500).json({ success: false, error: error.message, stack: error.stack });
+    console.error('SEND QUOTATION ERROR:', error);
+
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 });
 
