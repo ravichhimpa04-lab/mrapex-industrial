@@ -1,3 +1,5 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 import express from 'express'; 
 import { Router } from 'express';
 import multer from 'multer';
@@ -413,7 +415,7 @@ router.post('/quotations/:id/send', async (req, res) => {
 
     const html = buildQuotationHTML(quotation, items || []);
 
-    // Render environment compatible parameters added here
+    // Render environment compatible parameters
     browser = await puppeteer.launch({
       headless: 'new',
       args: [
@@ -421,7 +423,7 @@ router.post('/quotations/:id/send', async (req, res) => {
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu'
-      ],
+      ]
     });
 
     const page = await browser.newPage();
