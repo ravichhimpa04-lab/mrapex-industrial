@@ -319,14 +319,15 @@ router.post('/quotations/:id/pdf', async (req, res) => {
 
     // Render environment compatible parameters added here
     browser = await puppeteer.launch({
-      headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-      ],
-    });
+  headless: 'new',
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu'
+  ],
+  executablePath: null 
+});
 
     const page = await browser.newPage();
 
@@ -417,14 +418,15 @@ router.post('/quotations/:id/send', async (req, res) => {
 
     // Render environment compatible parameters
     browser = await puppeteer.launch({
-      headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-      ]
-    });
+  headless: 'new',
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu'
+  ],
+  executablePath: null 
+});
 
     const page = await browser.newPage();
 
