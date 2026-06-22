@@ -5,9 +5,9 @@
   "type": "module",
   "main": "src/main.js",
   "scripts": {
-  "postinstall": "npx puppeteer browsers install chrome",
+  "postinstall": "rm -rf /opt/render/.cache/puppeteer && npx puppeteer browsers install chrome",
   "start": "node src/main.js"
-},
+}
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
