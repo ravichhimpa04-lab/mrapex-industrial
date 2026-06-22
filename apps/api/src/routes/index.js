@@ -372,31 +372,15 @@ router.post('/quotations/:id/pdf', async (req, res) => {
   }
 });
 
-// 2. Email Route (Fixed with Render flags and Admin BCC/Copy)
+// 2. Email Route (Fixed and Complete)
 router.post('/quotations/:id/send', async (req, res) => {
   let browser;
 
   try {
     const auth = await getAuthenticatedAdmin(req);
-
     if (auth.errorStatus) {
-      return res.status(auth.errorStatus).json({
-        success: false,
-        error: auth.errorMessage,
-      });
+      return res.status(auth.errorStatus).json({ success: false, error: auth.errorMessage });
     }
-    } catch (error) {
-    if (browser) await browser.close();
-    
-    // Ye line console mein error dikhayegi
-    console.error("DEBUG ERROR STACK:", error); 
-
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-      stack: error.stack
-    });
-  
 
     const { id } = req.params;
 
@@ -407,17 +391,11 @@ router.post('/quotations/:id/send', async (req, res) => {
       .single();
 
     if (quotationError || !quotation) {
-      return res.status(404).json({
-        success: false,
-        error: 'Quotation not found',
-      });
+      return res.status(404).json({ success: false, error: 'Quotation not found' });
     }
 
     if (!quotation.email) {
-      return res.status(400).json({
-        success: false,
-        error: 'Customer email not found in quotation',
-      });
+      return res.status(400).json({ success: false, error: 'Customer email not found' });
     }
 
     const { data: items, error: itemsError } = await supabase
@@ -427,113 +405,54 @@ router.post('/quotations/:id/send', async (req, res) => {
       .order('created_at', { ascending: true });
 
     if (itemsError) {
-      return res.status(500).json({
-        success: false,
-        error: itemsError.message,
-      });
+      return res.status(500).json({ success: false, error: itemsError.message });
     }
 
     const html = buildQuotationHTML(quotation, items || []);
 
-    // Render environment compatible launch settings
     browser = await puppeteer.launch({
-  headless: true,
-  args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage', // Memory management ke liye zaroori
-    '--disable-gpu',
-    '--no-zygote',
-    '--single-process',       // RAM bachane ka sabse bada tareeka
-    '--disable-extensions',
-    '--disable-infobars',
-    '--hide-scrollbars',
-    '--mute-audio',
-    '--disable-notifications'
-  ],
-  executablePath: undefined
-});
+      headless: true,
+      args: [
+        '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+        '--disable-gpu', '--no-zygote', '--single-process',
+        '--disable-extensions', '--disable-infobars', '--hide-scrollbars',
+        '--mute-audio', '--disable-notifications'
+      ],
+      executablePath: undefined
+    });
 
     const page = await browser.newPage();
-
-    await page.setContent(html, {
-      waitUntil: 'networkidle0',
-    });
+    await page.setContent(html, { waitUntil: 'networkidle0' });
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: {
-        top: '0mm',
-        right: '0mm',
-        bottom: '0mm',
-        left: '0mm',
-      },
+      margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
     });
 
     await browser.close();
 
     const quotationFileName = `${quotation.quotation_no.replaceAll('/', '-')}.pdf`;
 
-    const mailInfo = await mailTransporter.sendMail({
+    await mailTransporter.sendMail({
       from: `"MR Apex Industrial Components" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
       to: quotation.email,
-      bcc: allowedEmails.join(', '), // Dono admins ko security copy silently chali jayegi
+      bcc: allowedEmails.join(', '),
       subject: `Quotation ${quotation.quotation_no} - MR Apex Industrial Components`,
-      html: `
-        <p>Dear ${quotation.customer_name || 'Customer'},</p>
-
-        <p>Please find attached our quotation <b>${quotation.quotation_no}</b>.</p>
-
-        <p>
-          Company: <b>${quotation.company_name || '-'}</b><br/>
-          Grand Total: <b>₹ ${Number(quotation.grand_total || 0).toLocaleString('en-IN', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}</b>
-        </p>
-
-        <p>Regards,<br/>
-        <b>MR Apex Industrial Components</b><br/>
-        sales@mrapexindustrial.in</p>
-      `,
-      attachments: [
-        {
-          filename: quotationFileName,
-          content: pdfBuffer,
-          contentType: 'application/pdf',
-        },
-      ],
+      html: `<p>Dear ${quotation.customer_name || 'Customer'},</p>
+             <p>Please find attached our quotation <b>${quotation.quotation_no}</b>.</p>
+             <p>Regards,<br/><b>MR Apex Industrial Components</b></p>`,
+      attachments: [{ filename: quotationFileName, content: pdfBuffer, contentType: 'application/pdf' }],
     });
-    console.log('Quotation mail sent info:', mailInfo);
 
-    const { error: updateError } = await supabase
-      .from('quotations')
-      .update({
-        status: true,
-        sent_at: new Date().toISOString(),
-      })
-      .eq('id', id);
+    await supabase.from('quotations').update({ status: true, sent_at: new Date().toISOString() }).eq('id', id);
 
-    if (updateError) {
-      return res.status(500).json({
-        success: false,
-        error: updateError.message,
-      });
-    }
+    return res.json({ success: true, message: 'Email sent successfully' });
 
-    return res.json({
-      success: true,
-      message: 'Quotation email sent successfully',
-      sent_to: quotation.email,
-    });
   } catch (error) {
     if (browser) await browser.close();
-
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    console.error("DEBUG ERROR STACK:", error);
+    return res.status(500).json({ success: false, error: error.message, stack: error.stack });
   }
 });
 
