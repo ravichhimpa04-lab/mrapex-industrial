@@ -370,6 +370,8 @@ router.post('/quotations/:id/send', async (req, res) => {
     const html = buildQuotationHTML(quotation, items || []);
     const pdfFile = await makePdfBuffer(html);
     const quotationFileName = `${quotation.quotation_no.replaceAll('/', '-')}.pdf`;
+    await mailTransporter.verify();
+console.log('SMTP VERIFIED');
 
     await mailTransporter.sendMail({
       from: `"MR Apex Industrial Components" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
