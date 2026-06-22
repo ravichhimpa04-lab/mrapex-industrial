@@ -318,17 +318,18 @@ router.post('/quotations/:id/pdf', async (req, res) => {
     const html = buildQuotationHTML(quotation, items || []);
 
    // Render environment compatible launch settings
-    bbrowser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-zygote',
-        '--single-process'
-      ]
-    });
+    browser = await puppeteer.launch({
+  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+  headless: true,
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--no-zygote',
+    '--single-process'
+  ]
+});
 
     const page = await browser.newPage();
 
@@ -405,16 +406,17 @@ router.post('/quotations/:id/send', async (req, res) => {
     const html = buildQuotationHTML(quotation, items || []);
 
     browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-zygote',
-        '--single-process'
-      ]
-    });
+  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+  headless: true,
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--no-zygote',
+    '--single-process'
+  ]
+});
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
