@@ -318,23 +318,17 @@ router.post('/quotations/:id/pdf', async (req, res) => {
     const html = buildQuotationHTML(quotation, items || []);
 
    // Render environment compatible launch settings
-    browser = await puppeteer.launch({
-  headless: true,
-  args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage', // Memory management ke liye zaroori
-    '--disable-gpu',
-    '--no-zygote',
-    '--single-process',       // RAM bachane ka sabse bada tareeka
-    '--disable-extensions',
-    '--disable-infobars',
-    '--hide-scrollbars',
-    '--mute-audio',
-    '--disable-notifications'
-  ],
-  executablePath: undefined
-});
+    bbrowser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-zygote',
+        '--single-process'
+      ]
+    });
 
     const page = await browser.newPage();
 
@@ -413,12 +407,13 @@ router.post('/quotations/:id/send', async (req, res) => {
     browser = await puppeteer.launch({
       headless: true,
       args: [
-        '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
-        '--disable-gpu', '--no-zygote', '--single-process',
-        '--disable-extensions', '--disable-infobars', '--hide-scrollbars',
-        '--mute-audio', '--disable-notifications'
-      ],
-      executablePath: undefined
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-zygote',
+        '--single-process'
+      ]
     });
 
     const page = await browser.newPage();
