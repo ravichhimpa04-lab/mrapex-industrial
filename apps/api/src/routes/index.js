@@ -219,6 +219,12 @@ router.post('/send-test-email', async (req, res) => {
         error: 'Recipient email required',
       });
     }
+    console.log('SMTP HOST:', process.env.SMTP_HOST);
+console.log('SMTP PORT:', process.env.SMTP_PORT);
+console.log('SMTP USER:', process.env.SMTP_USER);
+
+await mailTransporter.verify();
+console.log('SMTP VERIFIED');
 
     await mailTransporter.sendMail({
       from: `"MR Apex Industrial Components" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
