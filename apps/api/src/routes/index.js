@@ -368,12 +368,22 @@ router.post('/quotations/:id/send', async (req, res) => {
     }
 
     const html = buildQuotationHTML(quotation, items || []);
-    const pdfFile = await makePdfBuffer(html);
-    const quotationFileName = `${quotation.quotation_no.replaceAll('/', '-')}.pdf`;
-    await mailTransporter.verify();
-console.log('SMTP VERIFIED');
+const pdfFile = await makePdfBuffer(html);
+const quotationFileName = `${quotation.quotation_no.replaceAll('/', '-')}.pdf`;
 
-    await mailTransporter.sendMail({
+console.log('========== SMTP DEBUG ==========');
+console.log('SMTP HOST:', process.env.SMTP_HOST);
+console.log('SMTP PORT:', process.env.SMTP_PORT);
+console.log('SMTP SECURE:', process.env.SMTP_SECURE);
+console.log('SMTP USER:', process.env.SMTP_USER);
+console.log('SMTP FROM:', process.env.SMTP_FROM);
+console.log('================================');
+
+await mailTransporter.verify();
+
+console.log('SMTP VERIFIED SUCCESSFULLY');
+
+await mailTransporter.sendMail({
       from: `"MR Apex Industrial Components" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
       to: quotation.email,
       bcc: allowedEmails.join(', '),
