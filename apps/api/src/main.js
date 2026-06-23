@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import dns from 'dns/promises';
 
 import routes from './routes/index.js';
 import { errorMiddleware } from './middleware/error.js';
@@ -10,6 +11,13 @@ import logger from './utils/logger.js';
 import { BodyLimit } from './constants/common.js';
 
 const app = express();
+
+try {
+  const result = await dns.lookup('smtp-relay.brevo.com');
+  console.log('DNS RESULT:', result);
+} catch (err) {
+  console.error('DNS ERROR:', err);
+}
 
 app.set('trust proxy', true);
 
