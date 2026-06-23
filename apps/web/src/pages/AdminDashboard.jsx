@@ -909,10 +909,18 @@ function AdminDashboard() {
                         <td className="p-3 border-t">{isBlank(item.part_number) ? <BlankBadge text="Missing" /> : item.part_number}</td>
                         <td className="p-3 border-t">{isBlank(item.make) ? <BlankBadge text="Missing" /> : item.make}</td>
 
-                        <td className="p-3 border-t max-w-[260px]">
-                          {isBlank(item.description) ? <BlankBadge text="Missing" /> : <span className="block line-clamp-2">{item.description}</span>}
-                        </td>
-
+                        <<td className="p-3 border-t w-[450px] max-w-[450px]">
+  {isBlank(item.description) ? (
+    <BlankBadge text="Missing" />
+  ) : (
+    <div
+      className="whitespace-normal break-words line-clamp-4 leading-5"
+      title={item.description}
+    >
+      {item.description}
+    </div>
+  )}
+</td>
                         <td className="p-3 border-t">
                           {item.status === 'Inactive' ? (
                             <span className="inline-block px-2 py-1 text-xs font-semibold text-orange-700 bg-orange-100 rounded">Inactive</span>
