@@ -384,7 +384,7 @@ function AdminDashboard() {
 
       const invalidRows = payload
         .map((item, index) => ({ ...item, excelRow: index + 2 }))
-        .filter((item) => !item.product_name || !item.category || !categoryNames.includes(item.category));
+        .filter((item) => !item.product_name);
 
       if (invalidRows.length > 0) {
         const errorText = invalidRows
@@ -393,8 +393,8 @@ function AdminDashboard() {
           .join('\n');
 
         alert(
-          `Excel upload stopped.\n\nProduct Name and Category required.\nCategory must exist in Admin Category list.\n\nInvalid rows:\n${errorText}\n\nAvailable categories:\n${categoryNames.join('\n')}`
-        );
+  `Excel upload stopped.\n\nProduct Name required.`
+);
 
         setExcelUploading(false);
         e.target.value = '';
