@@ -383,26 +383,50 @@ await mailTransporter.verify();
 
 console.log('SMTP VERIFIED SUCCESSFULLY');
 
-await mailTransporter.sendMail({
-      from: `"MR Apex Industrial Components" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-      to: quotation.email,
-      bcc: allowedEmails.join(', '),
-      subject: `Quotation ${quotation.quotation_no} - MR Apex Industrial Components`,
-      html: `
-        <div style="font-family: Arial, sans-serif; color:#111827;">
-          <p>Dear ${escapeHtml(quotation.customer_name || 'Customer')},</p>
-          <p>Please find attached our quotation <b>${escapeHtml(quotation.quotation_no)}</b>.</p>
-          <p>Regards,<br/><b>MR Apex Industrial Components</b></p>
-        </div>
-      `,
-      attachments: [
-        {
-          filename: quotationFileName,
-          content: pdfFile,
-          contentType: 'application/pdf',
-        },
-      ],
-    });
+const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+  method: 'POST',
+  headers: {
+    accept: 'application/json',
+    'api-key': process.env.BREVO_API_KEY,
+    'content-type': 'application/json',
+  },
+  body: JSON.stringify({
+    sender: {
+      name: process.env.FROM_NAME || 'MR Apex Industrial Components',
+      email: process.env.FROM_EMAIL || 'sales@mrapexindustrial.in',
+    },
+    to: [
+      {
+        email: quotation.email,
+        name: quotation.customer_name || 'Customer',
+      },
+    ],
+    bcc: allowedEmails.map((email) => ({ email })),
+    subject: `Quotation ${quotation.quotation_no} - MR Apex Industrial Components`,
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; color:#111827;">
+        <p>Dear ${escapeHtml(quotation.customer_name || 'Customer')},</p>
+        <p>Please find attached our quotation <b>${escapeHtml(quotation.quotation_no)}</b>.</p>
+        <p>Regards,<br/><b>MR Apex Industrial Components</b></p>
+      </div>
+    `,
+    attachment: [
+      {
+        name: quotationFileName,
+        content: pdfFile.toString('base64'),
+      },
+    ],
+  }),
+});
+
+const brevoResult = await brevoResponse.json();
+
+if (!brevoResponse.ok) {
+  console.error('BREVO EMAIL ERROR:', brevoResult);
+  throw new Error(brevoResult.message || 'Brevo email send failed');
+}
+
+console.log('BREVO EMAIL SENT:', brevoResult);
 
     await supabase
       .from('quotations')
