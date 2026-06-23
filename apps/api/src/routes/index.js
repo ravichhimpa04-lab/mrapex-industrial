@@ -371,17 +371,6 @@ router.post('/quotations/:id/send', async (req, res) => {
 const pdfFile = await makePdfBuffer(html);
 const quotationFileName = `${quotation.quotation_no.replaceAll('/', '-')}.pdf`;
 
-console.log('========== SMTP DEBUG ==========');
-console.log('SMTP HOST:', process.env.SMTP_HOST);
-console.log('SMTP PORT:', process.env.SMTP_PORT);
-console.log('SMTP SECURE:', process.env.SMTP_SECURE);
-console.log('SMTP USER:', process.env.SMTP_USER);
-console.log('SMTP FROM:', process.env.SMTP_FROM);
-console.log('================================');
-
-await mailTransporter.verify();
-
-console.log('SMTP VERIFIED SUCCESSFULLY');
 
 const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
   method: 'POST',
