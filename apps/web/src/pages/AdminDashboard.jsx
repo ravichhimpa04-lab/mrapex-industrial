@@ -877,7 +877,7 @@ function AdminDashboard() {
               </div>
 
               <div className="overflow-x-auto border rounded-xl">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm table-auto">
                   <thead className="bg-slate-900 text-white">
                     <tr>
                       <th className="p-3 text-left">Image</th>
@@ -895,13 +895,19 @@ function AdminDashboard() {
                   <tbody>
                     {filteredProducts.map((item, index) => (
                       <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                        <td className="p-3 border-t">
-                          {item.image_url ? (
-                            <img src={item.image_url} alt={item.product_name || 'Product'} className="w-16 h-16 object-contain border rounded-lg bg-white" />
-                          ) : (
-                            <BlankBadge text="No Image" />
-                          )}
-                        </td>
+                        <td className="p-3 border-t w-[110px] min-w-[110px]">
+  {item.image_url ? (
+    <img
+      src={item.image_url}
+      alt={item.product_name || 'Product'}
+      className="w-16 h-16 object-contain rounded-lg border bg-white p-1"
+    />
+  ) : (
+    <div className="w-16 h-16 rounded-lg border bg-gray-50 text-gray-400 text-xs flex items-center justify-center text-center">
+      No Image
+    </div>
+  )}
+</td>
 
                         <td className="p-3 border-t font-medium">{isBlank(item.product_name) ? <BlankBadge text="Missing" /> : item.product_name}</td>
                         <td className="p-3 border-t">{isBlank(item.category) ? <BlankBadge text="Missing" /> : item.category}</td>
@@ -909,12 +915,12 @@ function AdminDashboard() {
                         <td className="p-3 border-t">{isBlank(item.part_number) ? <BlankBadge text="Missing" /> : item.part_number}</td>
                         <td className="p-3 border-t">{isBlank(item.make) ? <BlankBadge text="Missing" /> : item.make}</td>
 
-                        <<td className="p-3 border-t w-[450px] max-w-[450px]">
+                        <td className="p-3 border-t min-w-[260px] max-w-[520px] resize-x overflow-auto">
   {isBlank(item.description) ? (
     <BlankBadge text="Missing" />
   ) : (
     <div
-      className="whitespace-normal break-words line-clamp-4 leading-5"
+      className="whitespace-normal break-words leading-5 max-h-[84px] overflow-y-auto"
       title={item.description}
     >
       {item.description}
