@@ -25,6 +25,26 @@ const emptyForm = {
 };
 
 const isBlank = (value) => !value || String(value).trim() === '';
+const makeSlug = (text = '') =>
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const generateSEO = (item = {}) => {
+  const name = item.product_name || '';
+  const part = item.part_number || '';
+  const category = item.category || '';
+
+  const slug = makeSlug(`${name} ${part}`);
+
+  const meta_title = `${name}${part ? ` | Part No ${part}` : ''} | MR Apex Industrial Components`;
+
+  const meta_description = `Buy ${name}${part ? ` part no ${part}` : ''}${category ? ` in ${category}` : ''} from MR Apex Industrial Components. Industrial machinery spare parts supplier in India.`;
+
+  return { slug, meta_title, meta_description };
+};
 
 function AdminDashboard() {
   const [products, setProducts] = useState([]);
@@ -72,7 +92,6 @@ function AdminDashboard() {
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
 
-  const categoryNames = categories.map((item) => item.name);
 
   const formSubCategories = useMemo(() => {
     const selectedCategory = categories.find((item) => item.name === form.category);
@@ -427,16 +446,16 @@ function AdminDashboard() {
     setMsg('');
 
     const payload = {
-      product_name: form.product_name.trim(),
-      part_number: form.part_number.trim(),
-      category: form.category.trim(),
-      sub_category: form.sub_category.trim(),
-      make: form.make.trim(),
-      description: form.description.trim(),
-      image_url: form.image_url.trim(),
-      status: form.status,
-    };
-
+  product_name: form.product_name.trim(),
+  part_number: form.part_number.trim(),
+  category: form.category.trim(),
+  sub_category: form.sub_category.trim(),
+  make: form.make.trim(),
+  description: form.description.trim(),
+  image_url: form.image_url.trim(),
+  status: form.status,
+};
+    
     let error;
 
     if (editingProduct) {
