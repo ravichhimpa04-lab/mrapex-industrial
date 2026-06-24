@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
 dotenv.config({
-  path: './apps/web/.env',
+  path: path.resolve(process.cwd(), '.env'),
 });
 
 const SITE_URL = 'https://mrapexindustrial.in';
@@ -19,7 +19,13 @@ const makeSlug = (text = '') =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-const staticPages = ['/', '/products', '/about', '/contact', '/industries'];
+const staticPages = [
+  '/',
+  '/products',
+  '/about',
+  '/contact',
+  '/industries',
+];
 
 const escapeXml = (value = '') =>
   String(value)
@@ -37,7 +43,10 @@ const generateSitemap = async () => {
   let productPages = [];
 
   if (supabaseUrl && supabaseAnonKey) {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = createClient(
+      supabaseUrl,
+      supabaseAnonKey
+    );
 
     const { data, error } = await supabase
       .from('products')
@@ -48,26 +57,43 @@ const generateSitemap = async () => {
       console.warn('Product sitemap skipped:', error.message);
     } else {
       productPages = (data || [])
-        .map((item) => item.slug || makeSlug(`${item.product_name || ''} ${item.part_number || ''}`))
+        .map(
+          (item) =>
+            item.slug ||
+            makeSlug(
+              `${item.product_name || ''} ${item.part_number || ''}`
+            )
+        )
         .filter(Boolean)
         .map((slug) => `/products/${slug}`);
     }
   } else {
-    console.warn('Supabase env not found. Static sitemap only.');
+    console.warn(
+      'Supabase env not found. Static sitemap only.'
+    );
   }
 
   const allPages = [...staticPages, ...productPages];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${allPages.map((page) => buildUrl(`${SITE_URL}${page}`)).join('\n')}
+${allPages
+  .map((page) => buildUrl(`${SITE_URL}${page}`))
+  .join('\n')}
 </urlset>
 `;
 
-  const outputPath = path.resolve('apps/web/public', 'sitemap.xml')
+  const outputPath = path.resolve(
+    process.cwd(),
+    'public',
+    'sitemap.xml'
+  );
+
   fs.writeFileSync(outputPath, xml, 'utf8');
 
-  console.log(`sitemap.xml generated successfully with ${allPages.length} URLs`);
+  console.log(
+    `sitemap.xml generated successfully with ${allPages.length} URLs`
+  );
 };
 
 generateSitemap();
