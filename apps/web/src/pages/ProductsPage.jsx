@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Truck,
@@ -23,6 +24,12 @@ const API_URL =
   'https://script.google.com/macros/s/AKfycbxe0bxrj8lMIkRhUJC2AEB_brBmNPVTYctVM1AJmMY1r7Us2lchynQFDkAcLFeOG7ji/exec';
 
 const whatsappNumber = '919602338804';
+const makeSlug = (text = '') =>
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 
 const fixedCategories = [
   'Volvo Parts',
@@ -129,6 +136,12 @@ function ProductsPage() {
   image: item.image_url || '',
 
   status: item.status || '',
+
+  slug: item.slug || '',
+
+metaTitle: item.meta_title || '',
+
+metaDescription: item.meta_description || '',
 }));
 
         setProducts(formattedProducts);
@@ -557,6 +570,16 @@ function ProductsPage() {
                             </div>
 
                             <div className="mt-auto space-y-3">
+
+                              <Button asChild variant="outline" className="w-full">
+  <Link
+    to={`/products/${
+      item.slug || makeSlug(`${item.name || ''} ${item.partNo || ''}`)
+    }`}
+  >
+    View Details
+  </Link>
+</Button>
                               <Button
                                 asChild
                                 className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white"

@@ -390,16 +390,25 @@ function AdminDashboard() {
         return;
       }
 
-      const payload = rows.map((row) => ({
-        product_name: String(row.product_name || '').trim(),
-        part_number: String(row.part_number || '').trim(),
-        category: String(row.category || '').trim(),
-        sub_category: String(row.sub_category || '').trim(),
-        make: String(row.make || '').trim(),
-        description: String(row.description || '').trim(),
-        image_url: String(row.image_url || '').trim(),
-        status: String(row.status || 'Active').trim() || 'Active',
-      }));
+      const payload = rows.map((row) => {
+  const baseItem = {
+    product_name: String(row.product_name || row['Product Name'] || '').trim(),
+    part_number: String(row.part_number || row['Part No'] || row['Part Number'] || '').trim(),
+    category: String(row.category || row['Category'] || '').trim(),
+    sub_category: String(row.sub_category || row['Sub Category'] || '').trim(),
+    make: String(row.make || row['Make'] || '').trim(),
+    description: String(row.description || row['Description'] || row['DISCRIPTION'] || '').trim(),
+    image_url: String(row.image_url || row['Image URL'] || '').trim(),
+    status: String(row.status || row['Status'] || 'Active').trim() || 'Active',
+  };
+
+  const seo = generateSEO(baseItem);
+
+  return {
+    ...baseItem,
+    ...seo,
+  };
+});
 
       const invalidRows = payload
         .map((item, index) => ({ ...item, excelRow: index + 2 }))
@@ -445,7 +454,7 @@ function AdminDashboard() {
     setSaving(true);
     setMsg('');
 
-    const payload = {
+    const basePayload = {
   product_name: form.product_name.trim(),
   part_number: form.part_number.trim(),
   category: form.category.trim(),
@@ -454,6 +463,13 @@ function AdminDashboard() {
   description: form.description.trim(),
   image_url: form.image_url.trim(),
   status: form.status,
+};
+
+const seo = generateSEO(basePayload);
+
+const payload = {
+  ...basePayload,
+  ...seo,
 };
     
     let error;
