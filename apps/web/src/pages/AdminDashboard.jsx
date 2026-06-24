@@ -965,9 +965,7 @@ function AdminDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div className="border rounded-xl p-5 bg-white">
               <h2 className="text-xl font-bold mb-2">Manage Categories</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Partner category add/edit कर सकता है. Delete सिर्फ owner कर सकता है.
-              </p>
+              
 
               <div className="flex gap-2 mb-5">
                 <input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="Example: Bearings" className="w-full border rounded-lg px-3 py-2" />
@@ -1026,9 +1024,7 @@ function AdminDashboard() {
 
             <div className="border rounded-xl p-5 bg-white">
               <h2 className="text-xl font-bold mb-2">Manage Sub Categories</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Partner sub category add/edit कर सकता है. Delete सिर्फ owner कर सकता है.
-              </p>
+              
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-5">
                 <select value={selectedCategoryForSub} onChange={(e) => setSelectedCategoryForSub(e.target.value)} className="border rounded-lg px-3 py-2">
