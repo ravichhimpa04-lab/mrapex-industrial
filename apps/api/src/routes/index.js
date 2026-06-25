@@ -12,6 +12,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { createClient } from '@supabase/supabase-js';
 import healthCheck from './health-check.js';
 import { buildQuotationHTML } from '../templates/quotation-template.js';
+import { optimizeProductImage } from '../utils/imageOptimizer.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -167,16 +168,18 @@ router.post('/upload-r2', upload.single('image'), async (req, res) => {
       .replace(/[^a-zA-Z0-9.-]/g, '')
       .toLowerCase();
 
-    const fileName = `mr-apex-product-images/${Date.now()}-${safeName}`;
+    const webpName = safeName.replace(/\.[^/.]+$/, '');
+const fileName = `mr-apex-product-images/${Date.now()}-${webpName}.webp`;
+const optimizedImageBuffer = await optimizeProductImage(req.file.buffer);
 
-    await r2.send(
-      new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME,
-        Key: fileName,
-        Body: req.file.buffer,
-        ContentType: req.file.mimetype,
-      })
-    );
+await r2.send(
+  new PutObjectCommand({
+    Bucket: process.env.R2_BUCKET_NAME,
+    Key: fileName,
+    Body: optimizedImageBuffer,
+    ContentType: 'image/webp',
+  })
+);
 
     const imageUrl = `${process.env.R2_PUBLIC_URL}/${fileName}`;
 

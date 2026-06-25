@@ -24,6 +24,8 @@ const API_URL =
   'https://script.google.com/macros/s/AKfycbxe0bxrj8lMIkRhUJC2AEB_brBmNPVTYctVM1AJmMY1r7Us2lchynQFDkAcLFeOG7ji/exec';
 
 const whatsappNumber = '919602338804';
+const PRODUCTS_PER_PAGE = 24;
+
 const makeSlug = (text = '') =>
   text
     .toLowerCase()
@@ -89,6 +91,7 @@ function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState(null);
   const [products, setProducts] = useState([]);
+  const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [sending, setSending] = useState(false);
@@ -119,30 +122,19 @@ function ProductsPage() {
         }
 
         const formattedProducts = (data || []).map((item) => ({
-  id: item.id,
-
-  name: item.product_name || '',
-
-  category: item.category || '',
-
-  subCategory: item.sub_category || '',
-
-  partNo: item.part_number || '',
-
-  make: item.make || '',
-
-  description: item.description || '',
-
-  image: item.image_url || '',
-
-  status: item.status || '',
-
-  slug: item.slug || '',
-
-metaTitle: item.meta_title || '',
-
-metaDescription: item.meta_description || '',
-}));
+          id: item.id,
+          name: item.product_name || '',
+          category: item.category || '',
+          subCategory: item.sub_category || '',
+          partNo: item.part_number || '',
+          make: item.make || '',
+          description: item.description || '',
+          image: item.image_url || '',
+          status: item.status || '',
+          slug: item.slug || '',
+          metaTitle: item.meta_title || '',
+          metaDescription: item.meta_description || '',
+        }));
 
         setProducts(formattedProducts);
       } catch (err) {
@@ -200,6 +192,10 @@ metaDescription: item.meta_description || '',
     }
   }, [categories]);
 
+  useEffect(() => {
+    setVisibleCount(PRODUCTS_PER_PAGE);
+  }, [selectedCategory, selectedSubCategory]);
+
   const currentCategory = categories.find(
     (cat) => cat.name === selectedCategory
   );
@@ -221,9 +217,13 @@ metaDescription: item.meta_description || '',
         )
       : currentCategory?.items || [];
 
+  const displayedProducts = visibleProducts.slice(0, visibleCount);
+  const hasMoreProducts = visibleProducts.length > visibleCount;
+
   const changeCategory = (categoryName) => {
     setSelectedCategory(categoryName);
     setSelectedSubCategory(null);
+    setVisibleCount(PRODUCTS_PER_PAGE);
 
     window.history.pushState(
       {},
@@ -234,6 +234,7 @@ metaDescription: item.meta_description || '',
 
   const changeSubCategory = (subCategoryName) => {
     setSelectedSubCategory(subCategoryName);
+    setVisibleCount(PRODUCTS_PER_PAGE);
 
     if (subCategoryName) {
       window.history.pushState(
@@ -287,41 +288,41 @@ metaDescription: item.meta_description || '',
     setSending(true);
 
     const payload = {
-  name: form.name,
-  mobile: form.mobile,
-  email: form.email,
-  company: form.company,
-  company_address: form.company_address,
-  quantity: form.quantity,
-  message: form.message,
+      name: form.name,
+      mobile: form.mobile,
+      email: form.email,
+      company: form.company,
+      company_address: form.company_address,
+      quantity: form.quantity,
+      message: form.message,
 
-  productName:
-    selectedProduct.product_name ||
-    selectedProduct.name ||
-    '',
+      productName:
+        selectedProduct.product_name ||
+        selectedProduct.name ||
+        '',
 
-  partNo:
-    selectedProduct.part_number ||
-    selectedProduct.partNo ||
-    '',
+      partNo:
+        selectedProduct.part_number ||
+        selectedProduct.partNo ||
+        '',
 
-  category:
-    selectedProduct.category ||
-    '',
+      category:
+        selectedProduct.category ||
+        '',
 
-  subCategory:
-    selectedProduct.sub_category ||
-    selectedProduct.subCategory ||
-    '',
+      subCategory:
+        selectedProduct.sub_category ||
+        selectedProduct.subCategory ||
+        '',
 
-  make:
-    selectedProduct.make ||
-    '',
+      make:
+        selectedProduct.make ||
+        '',
 
-  description:
-    selectedProduct.description ||
-    '',
-};
+      description:
+        selectedProduct.description ||
+        '',
+    };
 
     try {
       await fetch(API_URL, {
@@ -456,8 +457,8 @@ metaDescription: item.meta_description || '',
                       initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
-                      transition={{ duration: 0.5, delay: index * 0.08 }}
-                      className="bg-card rounded-2xl p-8 shadow-sm border text-left hover:shadow-lg hover:-translate-y-1 transition-all"
+                      transition={{ duration: 0.35, delay: Math.min(index, 6) * 0.04 }}
+                      className="bg-card rounded-2xl p-8 shadow-sm border text-left hover:shadow-lg hover:-translate-y-1 transition-all [content-visibility:auto] [contain-intrinsic-size:280px]"
                     >
                       <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
                         <Icon className="w-8 h-8 text-primary" />
@@ -489,6 +490,7 @@ metaDescription: item.meta_description || '',
                   onClick={() => {
                     setSelectedCategory(null);
                     setSelectedSubCategory(null);
+                    setVisibleCount(PRODUCTS_PER_PAGE);
                     window.history.pushState({}, '', '/products');
                   }}
                   className="mb-8"
@@ -502,116 +504,142 @@ metaDescription: item.meta_description || '',
                     Products will be added soon in this category.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {visibleProducts.map((item, index) => {
-                      const message = getWhatsappMessage(
-                        item,
-                        currentCategory.name
-                      );
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {displayedProducts.map((item, index) => {
+                        const message = getWhatsappMessage(
+                          item,
+                          currentCategory.name
+                        );
 
-                      return (
-                        <motion.div
-                          key={`${item.id || item.name}-${item.partNo || index}`}
-                          initial={{ opacity: 0, y: 20 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 0.5, delay: index * 0.08 }}
-                          className="bg-card rounded-2xl overflow-hidden shadow-sm border flex flex-col h-full"
-                        >
-                          <div className="h-56 bg-white border-b overflow-hidden">
-                            <img
-                              src={
-                                item.image ||
-                                item.imageUrl ||
-                                item['Image URL'] ||
-                                'https://via.placeholder.com/500x350?text=Product+Image'
-                              }
-                              alt={item.name}
-                              className="w-full h-full object-contain p-4"
-                              onError={(e) => {
-                                e.currentTarget.src =
-                                  'https://via.placeholder.com/500x350?text=Product+Image';
-                              }}
-                            />
-                          </div>
-
-                          <div className="p-6 flex flex-col flex-grow">
-                            <p className="text-sm font-semibold text-primary mb-2">
-                              {currentCategory.name}
-                              {item.subCategory && ` / ${item.subCategory}`}
-                            </p>
-
-                            <h2 className="text-xl font-bold text-foreground mb-3">
-                              {item.name}
-                            </h2>
-
-                            <div className="text-sm text-muted-foreground mb-6 space-y-1">
-                              {item.partNo && (
-                                <p>
-                                  <span className="font-semibold text-foreground">
-                                    Part Number:
-                                  </span>{' '}
-                                  {item.partNo}
-                                </p>
-                              )}
-
-                              {item.make && (
-                                <p>
-                                  <span className="font-semibold text-foreground">
-                                    Make:
-                                  </span>{' '}
-                                  {item.make}
-                                </p>
-                              )}
-
-                              {item.description && (
-                                <p className="pt-2">{item.description}</p>
-                              )}
-                            </div>
-
-                            <div className="mt-auto space-y-3">
-
-                              <Button asChild variant="outline" className="w-full">
-  <Link
-    to={`/products/${
-      item.slug || makeSlug(`${item.name || ''} ${item.partNo || ''}`)
-    }`}
-  >
-    View Details
-  </Link>
-</Button>
-                              <Button
-                                asChild
-                                className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white"
-                              >
-                                <a
-                                  href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-                                    message
-                                  )}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <MessageCircle className="w-4 h-4 mr-2" />
-                                  Enquire on WhatsApp
-                                </a>
-                              </Button>
-
-                              <Button
-                                variant="outline"
-                                className="w-full"
-                                onClick={() =>
-                                  openQuoteForm(item, currentCategory.name)
+                        return (
+                          <motion.div
+                            key={`${item.id || item.name}-${item.partNo || index}`}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.35, delay: Math.min(index, 6) * 0.04 }}
+                            className="bg-card rounded-2xl overflow-hidden shadow-sm border flex flex-col h-full [content-visibility:auto] [contain-intrinsic-size:360px]"
+                          >
+                            <div className="h-56 bg-white border-b overflow-hidden flex items-center justify-center relative bg-gradient-to-br from-white to-slate-50">
+                              <img
+                                src={
+                                  item.image ||
+                                  item.imageUrl ||
+                                  item['Image URL'] ||
+                                  'https://via.placeholder.com/500x350?text=Product+Image'
                                 }
-                              >
-                                <Send className="w-4 h-4 mr-2" />
-                                Request Quote
-                              </Button>
+                                alt={item.name || 'Industrial Product'}
+                                loading="lazy"
+                                decoding="async"
+                                fetchPriority="low"
+                                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                width="500"
+                                height="350"
+                                className="w-full h-full object-contain p-3 transition-opacity duration-300"
+                                onError={(e) => {
+                                  e.currentTarget.src =
+                                    'https://via.placeholder.com/500x350?text=Product+Image';
+                                }}
+                              />
                             </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
+
+                            <div className="p-6 flex flex-col flex-grow">
+                              <p className="text-sm font-semibold text-primary mb-2">
+                                {currentCategory.name}
+                                {item.subCategory && ` / ${item.subCategory}`}
+                              </p>
+
+                              <h2 className="text-xl font-bold text-foreground mb-3">
+                                {item.name}
+                              </h2>
+
+                              <div className="text-sm text-muted-foreground mb-6 space-y-1">
+                                {item.partNo && (
+                                  <p>
+                                    <span className="font-semibold text-foreground">
+                                      Part Number:
+                                    </span>{' '}
+                                    {item.partNo}
+                                  </p>
+                                )}
+
+                                {item.make && (
+                                  <p>
+                                    <span className="font-semibold text-foreground">
+                                      Make:
+                                    </span>{' '}
+                                    {item.make}
+                                  </p>
+                                )}
+
+                                {item.description && (
+                                  <p className="pt-2">{item.description}</p>
+                                )}
+                              </div>
+
+                              <div className="mt-auto space-y-3">
+                                <Button asChild variant="outline" className="w-full">
+                                  <Link
+                                    to={`/products/${
+                                      item.slug || makeSlug(`${item.name || ''} ${item.partNo || ''}`)
+                                    }`}
+                                  >
+                                    View Details
+                                  </Link>
+                                </Button>
+
+                                <Button
+                                  asChild
+                                  className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white"
+                                >
+                                  <a
+                                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+                                      message
+                                    )}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <MessageCircle className="w-4 h-4 mr-2" />
+                                    Enquire on WhatsApp
+                                  </a>
+                                </Button>
+
+                                <Button
+                                  variant="outline"
+                                  className="w-full"
+                                  onClick={() =>
+                                    openQuoteForm(item, currentCategory.name)
+                                  }
+                                >
+                                  <Send className="w-4 h-4 mr-2" />
+                                  Request Quote
+                                </Button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+
+                    {hasMoreProducts && (
+                      <div className="text-center mt-10">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() =>
+                            setVisibleCount((prev) => prev + PRODUCTS_PER_PAGE)
+                          }
+                        >
+                          Load More Products
+                        </Button>
+
+                        <p className="text-sm text-muted-foreground mt-3">
+                          Showing {displayedProducts.length} of {visibleProducts.length} products
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
