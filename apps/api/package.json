@@ -6,7 +6,7 @@
   "main": "src/main.js",
   "scripts": {
     "postinstall": "rm -rf /opt/render/.cache/puppeteer && npx puppeteer browsers install chrome",
-    "start": "node --env-file=.env src/main.js"
+    "start": "node src/main.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.0.0",
