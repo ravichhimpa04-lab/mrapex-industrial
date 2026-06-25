@@ -13,6 +13,7 @@ import { createClient } from '@supabase/supabase-js';
 import healthCheck from './health-check.js';
 import { buildQuotationHTML } from '../templates/quotation-template.js';
 import { optimizeProductImage } from '../utils/imageOptimizer.js';
+import aiAssistantRoutes from './ai-assistant.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -137,6 +138,8 @@ router.get('/route-test', (req, res) => {
     message: 'index.js route file is active',
   });
 });
+
+router.use('/ai', aiAssistantRoutes);
 
 router.get('/upload-r2', async (req, res) => {
   return res.json({
