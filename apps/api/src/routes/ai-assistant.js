@@ -139,7 +139,8 @@ ${JSON.stringify(productSummary, null, 2)}
 Rules:
 - Do not invent products.
 - If matched products are available, say you found possible matching products.
-- If no matched products are available, politely ask customer to share part number, make, machine model, image, or requirement.
+- If no matched products are available, politely ask customer to share part number, make, machine model, or requirement details.
+- Do not ask the customer to upload or share an image because image upload is not available in this assistant yet.
 - Keep answer short and professional.
 - Mention MR Apex can provide quotation after requirement confirmation.
 - Do not mention internal database or AI.
