@@ -10,6 +10,7 @@ import ProductsPage from './pages/ProductsPage.jsx';
 import ProductDetailPage from './pages/ProductDetailPage.jsx';
 import IndustriesPage from './pages/IndustriesPage.jsx';
 import ContactPage from './pages/ContactPage.jsx';
+import BrandsPage from './pages/BrandsPage.jsx';
 
 import AdminLogin from '@/pages/AdminLogin.jsx';
 import AdminDashboard from '@/pages/AdminDashboard.jsx';
@@ -29,6 +30,7 @@ function App() {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/:slug" element={<ProductDetailPage />} />
         <Route path="/industries" element={<IndustriesPage />} />
+        <Route path="/brands" element={<BrandsPage />} />
         <Route path="/about" element={<AboutUsPage />} />
         <Route path="/contact" element={<ContactPage />} />
 

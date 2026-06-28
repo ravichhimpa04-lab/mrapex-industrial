@@ -1,7 +1,27 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useParams, Link } from 'react-router-dom';
-import { MessageCircle, Send, ArrowLeft, Share2, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  Boxes,
+  CheckCircle2,
+  Copy,
+  FileText,
+  Image as ImageIcon,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Package,
+  Send,
+  Share2,
+  ShieldCheck,
+  Truck,
+  Wrench,
+  X,
+} from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
@@ -62,6 +82,7 @@ function ProductDetailPage() {
         const fallbackSlug = makeSlug(
           `${item.product_name || ''} ${item.part_number || ''}`
         );
+
         return savedSlug === productSlug || fallbackSlug === productSlug;
       });
 
@@ -71,7 +92,10 @@ function ProductDetailPage() {
         const related = items
           .filter(
             (item) =>
-              item.id !== found.id && item.category === found.category
+              item.id !== found.id &&
+              (item.category === found.category ||
+                item.sub_category === found.sub_category ||
+                item.make === found.make)
           )
           .slice(0, 6);
 
@@ -86,12 +110,19 @@ function ProductDetailPage() {
     loadProduct();
   }, [productSlug]);
 
+  const productUrl = product
+    ? `https://mrapexindustrial.in/products/${
+        product.slug ||
+        makeSlug(`${product.product_name || ''} ${product.part_number || ''}`)
+      }`
+    : '';
+
   const whatsappMessage = product
     ? `Hello MR Apex Industrial Components, I need quotation for ${
         product.product_name || ''
       }${product.part_number ? `. Part Number: ${product.part_number}` : ''}${
         product.make ? `. Make: ${product.make}` : ''
-      }`
+      }${product.category ? `. Category: ${product.category}` : ''}`
     : '';
 
   const handleShare = async () => {
@@ -141,7 +172,6 @@ function ProductDetailPage() {
       company_address: form.company_address,
       quantity: form.quantity,
       message: form.message,
-
       productName: selectedProduct.product_name || '',
       partNo: selectedProduct.part_number || '',
       category: selectedProduct.category || '',
@@ -175,7 +205,10 @@ function ProductDetailPage() {
       <>
         <Header />
         <main className="min-h-[60vh] flex items-center justify-center">
-          <p className="text-muted-foreground">Loading product...</p>
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading product...</p>
+          </div>
         </main>
         <Footer />
       </>
@@ -188,18 +221,36 @@ function ProductDetailPage() {
         <Helmet>
           <title>Product Not Found - MR Apex Industrial Components</title>
         </Helmet>
+
         <Header />
-        <main className="min-h-[60vh] flex items-center justify-center p-6">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold mb-3">Product Not Found</h1>
+
+        <main className="min-h-[60vh] flex items-center justify-center p-6 bg-muted/40">
+          <div className="text-center bg-white border rounded-3xl p-10 max-w-xl">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+              <Package className="w-8 h-8 text-primary" />
+            </div>
+
+            <h1 className="text-3xl font-extrabold mb-3">
+              Product Not Found
+            </h1>
+
             <p className="text-muted-foreground mb-6">
-              This product is not available or may have been removed.
+              This product is not available or may have been removed. You can
+              browse our catalogue or submit your industrial requirement.
             </p>
-            <Button asChild>
-              <Link to="/products">Back to Products</Link>
-            </Button>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button asChild className="rounded-xl">
+                <Link to="/products">Back to Products</Link>
+              </Button>
+
+              <Button asChild variant="outline" className="rounded-xl">
+                <Link to="/contact">Submit Requirement</Link>
+              </Button>
+            </div>
           </div>
         </main>
+
         <Footer />
       </>
     );
@@ -209,18 +260,15 @@ function ProductDetailPage() {
     product.meta_title ||
     `${product.product_name}${
       product.part_number ? ` | Part No ${product.part_number}` : ''
-    } | MR Apex Industrial Components`;
+    } | Industrial Parts Sourcing | MR Apex Industrial Components`;
 
   const description =
     product.meta_description ||
-    `Buy ${product.product_name}${
+    `Source ${product.product_name}${
       product.part_number ? ` part no ${product.part_number}` : ''
-    } from MR Apex Industrial Components. Industrial machinery spare parts supplier in India.`;
+    } from MR Apex Industrial Components. Submit RFQ for OEM, aftermarket and industrial machinery spare parts across India.`;
 
-  const canonicalUrl = `https://mrapexindustrial.in/products/${
-    product.slug ||
-    makeSlug(`${product.product_name || ''} ${product.part_number || ''}`)
-  }`;
+  const canonicalUrl = productUrl;
 
   const productSchema = {
     '@context': 'https://schema.org',
@@ -234,7 +282,33 @@ function ProductDetailPage() {
     },
     sku: product.part_number || product.id || '',
     category: product.category || '',
+    offers: {
+      '@type': 'Offer',
+      availability: 'https://schema.org/InStock',
+      priceCurrency: 'INR',
+      url: canonicalUrl,
+      seller: {
+        '@type': 'Organization',
+        name: 'MR Apex Industrial Components',
+      },
+    },
   };
+
+  const detailRows = [
+    { label: 'Part Number', value: product.part_number },
+    { label: 'Make / Brand', value: product.make },
+    { label: 'Category', value: product.category },
+    { label: 'Sub Category', value: product.sub_category },
+    { label: 'Availability', value: 'RFQ Based Confirmation' },
+    { label: 'Supply Support', value: 'Pan India' },
+  ].filter((row) => row.value);
+
+  const rfqSteps = [
+    'Share product details, part number or image',
+    'MR Apex reviews sourcing availability',
+    'Receive quotation and confirmation support',
+    'Procurement and supply coordination',
+  ];
 
   return (
     <>
@@ -256,12 +330,16 @@ function ProductDetailPage() {
       <Header />
 
       <main>
-        <section className="bg-primary text-primary-foreground py-8">
-          <div className="container-custom">
+        <section className="relative overflow-hidden bg-slate-950 text-white">
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950" />
+          <div className="absolute right-0 top-0 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
+          <div className="absolute left-0 bottom-0 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" />
+
+          <div className="relative z-10 container-custom py-10 md:py-14">
             <Button
               asChild
               variant="outline"
-              className="mb-5 bg-white text-primary hover:bg-white/90"
+              className="mb-6 rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
             >
               <Link to="/products">
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -269,82 +347,42 @@ function ProductDetailPage() {
               </Link>
             </Button>
 
-            <p className="text-sm opacity-90 mb-2">
-              {product.category || 'Products'}
-              {product.sub_category ? ` / ${product.sub_category}` : ''}
-            </p>
-
-            <h1 className="text-3xl md:text-5xl font-bold">
-              {product.product_name}
-            </h1>
-          </div>
-        </section>
-
-        <section className="section-padding bg-muted/50">
-          <div className="container-custom">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-              <div className="bg-white rounded-2xl border shadow-sm p-6">
-                <div className="aspect-[4/3] bg-white flex items-center justify-center">
-                  <img
-                    src={
-                      product.image_url ||
-                      'https://via.placeholder.com/700x500?text=Product+Image'
-                    }
-                    alt={product.product_name}
-                    loading="eager"
-                    fetchPriority="high"
-                    decoding="async"
-                    className="max-w-full max-h-full object-contain transition-transform duration-300 hover:scale-105 cursor-zoom-in"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl border shadow-sm p-6">
-                <h2 className="text-2xl font-bold mb-5">Product Details</h2>
-
-                <div className="space-y-3 text-sm md:text-base">
-                  {product.part_number && (
-                    <p>
-                      <span className="font-semibold">Part Number:</span>{' '}
-                      {product.part_number}
-                    </p>
-                  )}
-
-                  {product.make && (
-                    <p>
-                      <span className="font-semibold">Make:</span>{' '}
-                      {product.make}
-                    </p>
-                  )}
-
+            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 items-start">
+              <div>
+                <div className="flex flex-wrap gap-2 mb-5">
                   {product.category && (
-                    <p>
-                      <span className="font-semibold">Category:</span>{' '}
+                    <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-bold text-blue-300">
                       {product.category}
-                    </p>
+                    </span>
                   )}
 
                   {product.sub_category && (
-                    <p>
-                      <span className="font-semibold">Sub Category:</span>{' '}
+                    <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-white/75">
                       {product.sub_category}
-                    </p>
+                    </span>
                   )}
 
-                  {product.description && (
-                    <div className="pt-3 border-t">
-                      <p className="font-semibold mb-2">Description</p>
-                      <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                        {product.description}
-                      </p>
-                    </div>
+                  {product.make && (
+                    <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-white/75">
+                      Make: {product.make}
+                    </span>
                   )}
                 </div>
 
-                <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight mb-5">
+                  {product.product_name}
+                </h1>
+
+                <p className="text-white/70 text-lg leading-relaxed max-w-3xl mb-7">
+                  Submit RFQ for this industrial component. MR Apex supports OEM
+                  sourcing, aftermarket replacement options and Pan India
+                  industrial procurement assistance based on availability.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-3">
                   <Button
                     asChild
-                    className="bg-[#25D366] hover:bg-[#20bd5a] text-white"
+                    className="h-12 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white"
                   >
                     <a
                       href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
@@ -358,22 +396,260 @@ function ProductDetailPage() {
                     </a>
                   </Button>
 
-                  <Button variant="outline" onClick={openQuoteForm}>
+                  <Button
+                    onClick={openQuoteForm}
+                    className="h-12 rounded-xl"
+                  >
                     <Send className="w-4 h-4 mr-2" />
                     Request Quote
                   </Button>
 
-                  <Button variant="outline" onClick={handleShare}>
+                  <Button
+                    variant="outline"
+                    onClick={handleShare}
+                    className="h-12 rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                  >
                     <Share2 className="w-4 h-4 mr-2" />
-                    Share Product
+                    Share
                   </Button>
                 </div>
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+                <h2 className="text-xl font-extrabold mb-5">
+                  RFQ & Sourcing Support
+                </h2>
+
+                <div className="space-y-4">
+                  {rfqSteps.map((step, index) => (
+                    <div key={step} className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-extrabold shrink-0">
+                        {index + 1}
+                      </div>
+                      <p className="text-sm text-white/75 leading-relaxed">
+                        {step}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-blue-400/20 bg-blue-500/10 p-4">
+                  <p className="text-sm text-white/70 leading-relaxed">
+                    If exact OEM part is unavailable, our team can help check
+                    compatible aftermarket or equivalent sourcing options.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="section-padding bg-muted/50">
+          <div className="container-custom">
+            <div className="grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-8 items-start">
+              <div className="bg-white rounded-3xl border shadow-sm p-5 md:p-6">
+                <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-white to-slate-50 border flex items-center justify-center overflow-hidden">
+                  <img
+                    src={
+                      product.image_url ||
+                      'https://via.placeholder.com/700x500?text=Product+Image'
+                    }
+                    alt={product.product_name}
+                    loading="eager"
+                    fetchPriority="high"
+                    decoding="async"
+                    width="700"
+                    height="500"
+                    className="max-w-full max-h-full object-contain p-4 transition-transform duration-300 hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.src =
+                        'https://via.placeholder.com/700x500?text=Product+Image';
+                    }}
+                  />
+                </div>
+
+                <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-2xl border bg-muted/40 p-4">
+                    <ImageIcon className="w-5 h-5 text-primary mb-2" />
+                    <p className="text-xs font-bold text-foreground">
+                      Product Image
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      For identification
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border bg-muted/40 p-4">
+                    <FileText className="w-5 h-5 text-primary mb-2" />
+                    <p className="text-xs font-bold text-foreground">
+                      RFQ Ready
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Quote request enabled
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border bg-muted/40 p-4">
+                    <Truck className="w-5 h-5 text-primary mb-2" />
+                    <p className="text-xs font-bold text-foreground">
+                      Pan India
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Supply support
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="bg-white rounded-3xl border shadow-sm p-6">
+                  <h2 className="text-2xl font-extrabold mb-5">
+                    Product Details
+                  </h2>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {detailRows.map((row) => (
+                      <div
+                        key={row.label}
+                        className="rounded-2xl border bg-muted/40 p-4"
+                      >
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">
+                          {row.label}
+                        </p>
+                        <p className="text-sm font-extrabold text-foreground">
+                          {row.value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {product.description && (
+                    <div className="mt-6 pt-6 border-t">
+                      <h3 className="font-extrabold text-foreground mb-2">
+                        Description
+                      </h3>
+                      <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                        {product.description}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-slate-950 text-white rounded-3xl p-6 border border-slate-800">
+                  <h2 className="text-2xl font-extrabold mb-4">
+                    Need This Product or Similar Alternative?
+                  </h2>
+
+                  <p className="text-white/65 leading-relaxed mb-5">
+                    Share your quantity, delivery location or technical
+                    requirement. MR Apex will review availability and help with
+                    OEM or compatible aftermarket sourcing support.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                    {[
+                      'OEM Sourcing',
+                      'Aftermarket Options',
+                      'Part Number Matching',
+                      'Bulk RFQ Support',
+                    ].map((item) => (
+                      <div
+                        key={item}
+                        className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-3 text-sm font-semibold text-white/80"
+                      >
+                        <BadgeCheck className="w-4 h-4 text-blue-300 shrink-0" />
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button onClick={openQuoteForm} className="rounded-xl">
+                      <Send className="w-4 h-4 mr-2" />
+                      Request Quote
+                    </Button>
+
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                    >
+                      <a
+                        href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+                          whatsappMessage
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        WhatsApp
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-10 rounded-3xl border bg-white p-6 md:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                {[
+                  {
+                    icon: ShieldCheck,
+                    title: 'Sourcing Support',
+                    desc: 'RFQ based product availability and supplier coordination.',
+                  },
+                  {
+                    icon: Boxes,
+                    title: 'OEM / Aftermarket',
+                    desc: 'Support for genuine and compatible replacement options.',
+                  },
+                  {
+                    icon: MapPin,
+                    title: 'Pan India Supply',
+                    desc: 'Industrial procurement support across India.',
+                  },
+                  {
+                    icon: CheckCircle2,
+                    title: 'Buyer Assistance',
+                    desc: 'Help with identification, quotation and enquiry process.',
+                  },
+                ].map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <div key={item.title} className="rounded-2xl bg-muted/40 border p-5">
+                      <Icon className="w-6 h-6 text-primary mb-3" />
+                      <h3 className="font-extrabold text-foreground mb-2">
+                        {item.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {item.desc}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {relatedProducts.length > 0 && (
               <div className="mt-12">
-                <h2 className="text-2xl font-bold mb-5">Related Products</h2>
+                <div className="flex items-end justify-between gap-4 mb-6">
+                  <div>
+                    <p className="text-primary font-semibold mb-1">
+                      Related Products
+                    </p>
+                    <h2 className="text-3xl font-extrabold text-foreground">
+                      Similar Industrial Components
+                    </h2>
+                  </div>
+
+                  <Button asChild variant="outline" className="rounded-xl hidden sm:inline-flex">
+                    <Link to="/products">
+                      View All Products
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {relatedProducts.map((item) => {
@@ -389,9 +665,9 @@ function ProductDetailPage() {
                       <Link
                         key={item.id}
                         to={`/products/${itemSlug}`}
-                        className="bg-white border rounded-2xl p-4 hover:shadow-lg transition-all"
+                        className="bg-white border rounded-3xl p-4 hover:shadow-xl hover:-translate-y-1 transition-all"
                       >
-                        <div className="h-40 bg-white flex items-center justify-center mb-4">
+                        <div className="h-40 rounded-2xl bg-gradient-to-br from-white to-slate-50 border flex items-center justify-center mb-4">
                           <img
                             src={
                               item.image_url ||
@@ -400,11 +676,15 @@ function ProductDetailPage() {
                             alt={item.product_name}
                             loading="lazy"
                             decoding="async"
-                            className="max-w-full max-h-full object-contain"
+                            className="max-w-full max-h-full object-contain p-3"
+                            onError={(e) => {
+                              e.currentTarget.src =
+                                'https://via.placeholder.com/400x300?text=Product';
+                            }}
                           />
                         </div>
 
-                        <h3 className="font-bold text-foreground line-clamp-2">
+                        <h3 className="font-extrabold text-foreground line-clamp-2">
                           {item.product_name}
                         </h3>
 
@@ -413,6 +693,10 @@ function ProductDetailPage() {
                             Part No: {item.part_number}
                           </p>
                         )}
+
+                        <p className="text-primary text-sm font-bold mt-3">
+                          View Details →
+                        </p>
                       </Link>
                     );
                   })}
@@ -425,7 +709,7 @@ function ProductDetailPage() {
 
       {selectedProduct && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 relative">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 relative shadow-2xl">
             <button
               type="button"
               onClick={() => setSelectedProduct(null)}
@@ -434,7 +718,7 @@ function ProductDetailPage() {
               <X className="w-5 h-5" />
             </button>
 
-            <h2 className="text-2xl font-bold mb-2">Request Quote</h2>
+            <h2 className="text-2xl font-extrabold mb-2">Request Quote</h2>
 
             <p className="text-sm text-gray-600 mb-5">
               {selectedProduct.product_name}
@@ -452,7 +736,7 @@ function ProductDetailPage() {
                 onChange={(e) =>
                   setForm({ ...form, name: e.target.value })
                 }
-                className="w-full border rounded-lg px-4 py-3"
+                className="w-full border rounded-xl px-4 py-3"
               />
 
               <input
@@ -462,7 +746,7 @@ function ProductDetailPage() {
                 onChange={(e) =>
                   setForm({ ...form, mobile: e.target.value })
                 }
-                className="w-full border rounded-lg px-4 py-3"
+                className="w-full border rounded-xl px-4 py-3"
               />
 
               <input
@@ -471,7 +755,7 @@ function ProductDetailPage() {
                 onChange={(e) =>
                   setForm({ ...form, email: e.target.value })
                 }
-                className="w-full border rounded-lg px-4 py-3"
+                className="w-full border rounded-xl px-4 py-3"
               />
 
               <input
@@ -480,7 +764,7 @@ function ProductDetailPage() {
                 onChange={(e) =>
                   setForm({ ...form, company: e.target.value })
                 }
-                className="w-full border rounded-lg px-4 py-3"
+                className="w-full border rounded-xl px-4 py-3"
               />
 
               <input
@@ -492,7 +776,7 @@ function ProductDetailPage() {
                     company_address: e.target.value,
                   })
                 }
-                className="w-full border rounded-lg px-4 py-3"
+                className="w-full border rounded-xl px-4 py-3"
               />
 
               <input
@@ -501,7 +785,7 @@ function ProductDetailPage() {
                 onChange={(e) =>
                   setForm({ ...form, quantity: e.target.value })
                 }
-                className="w-full border rounded-lg px-4 py-3"
+                className="w-full border rounded-xl px-4 py-3"
               />
 
               <textarea
@@ -510,10 +794,14 @@ function ProductDetailPage() {
                 onChange={(e) =>
                   setForm({ ...form, message: e.target.value })
                 }
-                className="w-full border rounded-lg px-4 py-3 min-h-[100px]"
+                className="w-full border rounded-xl px-4 py-3 min-h-[100px]"
               />
 
-              <Button type="submit" className="w-full" disabled={sending}>
+              <Button
+                type="submit"
+                className="w-full rounded-xl"
+                disabled={sending}
+              >
                 {sending ? 'Submitting...' : 'Submit Enquiry'}
               </Button>
             </form>

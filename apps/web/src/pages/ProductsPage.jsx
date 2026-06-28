@@ -3,18 +3,26 @@ import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Truck,
-  Settings,
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  Boxes,
+  Building2,
   Cog,
   Droplets,
   Gauge,
-  Wrench,
-  Package,
   MessageCircle,
-  ArrowLeft,
+  Package,
+  Search,
   Send,
+  Settings,
+  ShieldCheck,
+  SlidersHorizontal,
+  Truck,
+  Wrench,
   X,
 } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
@@ -95,6 +103,8 @@ function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [sending, setSending] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMake, setSelectedMake] = useState('');
 
   const [form, setForm] = useState({
     name: '',
@@ -153,13 +163,9 @@ function ProductsPage() {
 
     products.forEach((product) => {
       if (!product.category) return;
-
       const cleanCategory = product.category.trim();
 
-      if (!grouped[cleanCategory]) {
-        grouped[cleanCategory] = [];
-      }
-
+      if (!grouped[cleanCategory]) grouped[cleanCategory] = [];
       grouped[cleanCategory].push(product);
     });
 
@@ -185,16 +191,13 @@ function ProductsPage() {
       categories.some((cat) => cat.name === categoryFromUrl)
     ) {
       setSelectedCategory(categoryFromUrl);
-
-      if (subCategoryFromUrl) {
-        setSelectedSubCategory(subCategoryFromUrl);
-      }
+      if (subCategoryFromUrl) setSelectedSubCategory(subCategoryFromUrl);
     }
   }, [categories]);
 
   useEffect(() => {
     setVisibleCount(PRODUCTS_PER_PAGE);
-  }, [selectedCategory, selectedSubCategory]);
+  }, [selectedCategory, selectedSubCategory, searchQuery, selectedMake]);
 
   const currentCategory = categories.find(
     (cat) => cat.name === selectedCategory
@@ -210,19 +213,62 @@ function ProductsPage() {
       ]
     : [];
 
-  const visibleProducts =
-    currentCategory && selectedSubCategory
-      ? currentCategory.items.filter(
-          (item) => item.subCategory === selectedSubCategory
-        )
-      : currentCategory?.items || [];
+  const makeOptions = useMemo(() => {
+    const sourceProducts = currentCategory ? currentCategory.items : products;
 
-  const displayedProducts = visibleProducts.slice(0, visibleCount);
-  const hasMoreProducts = visibleProducts.length > visibleCount;
+    return [
+      ...new Set(
+        sourceProducts.map((item) => item.make).filter(Boolean)
+      ),
+    ].sort();
+  }, [currentCategory, products]);
+
+  const filteredProducts = useMemo(() => {
+    let list = currentCategory ? currentCategory.items : products;
+
+    if (selectedSubCategory) {
+      list = list.filter((item) => item.subCategory === selectedSubCategory);
+    }
+
+    if (selectedMake) {
+      list = list.filter((item) => item.make === selectedMake);
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+
+      list = list.filter((item) =>
+        [
+          item.name,
+          item.partNo,
+          item.make,
+          item.category,
+          item.subCategory,
+          item.description,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(query)
+      );
+    }
+
+    return list;
+  }, [
+    currentCategory,
+    products,
+    selectedSubCategory,
+    selectedMake,
+    searchQuery,
+  ]);
+
+  const displayedProducts = filteredProducts.slice(0, visibleCount);
+  const hasMoreProducts = filteredProducts.length > visibleCount;
 
   const changeCategory = (categoryName) => {
     setSelectedCategory(categoryName);
     setSelectedSubCategory(null);
+    setSelectedMake('');
     setVisibleCount(PRODUCTS_PER_PAGE);
 
     window.history.pushState(
@@ -244,13 +290,22 @@ function ProductsPage() {
           selectedCategory
         )}&subCategory=${encodeURIComponent(subCategoryName)}`
       );
-    } else {
+    } else if (selectedCategory) {
       window.history.pushState(
         {},
         '',
         `/products?category=${encodeURIComponent(selectedCategory)}`
       );
     }
+  };
+
+  const clearFilters = () => {
+    setSelectedCategory(null);
+    setSelectedSubCategory(null);
+    setSelectedMake('');
+    setSearchQuery('');
+    setVisibleCount(PRODUCTS_PER_PAGE);
+    window.history.pushState({}, '', '/products');
   };
 
   const getWhatsappMessage = (item, categoryName) => {
@@ -262,13 +317,13 @@ function ProductsPage() {
 
     return `Hello MR Apex Industrial Components, I need quotation for ${
       item.name
-    }. Category: ${categoryName}.${
+    }. Category: ${categoryName || item.category || 'Industrial Parts'}.${
       details.length ? ` ${details.join('. ')}` : ''
     }`;
   };
 
   const openQuoteForm = (item, categoryName) => {
-    setSelectedProduct({ ...item, category: categoryName });
+    setSelectedProduct({ ...item, category: categoryName || item.category });
     setForm({
       name: '',
       mobile: '',
@@ -282,7 +337,6 @@ function ProductsPage() {
 
   const submitEnquiry = async (e) => {
     e.preventDefault();
-
     if (!selectedProduct) return;
 
     setSending(true);
@@ -295,33 +349,13 @@ function ProductsPage() {
       company_address: form.company_address,
       quantity: form.quantity,
       message: form.message,
-
-      productName:
-        selectedProduct.product_name ||
-        selectedProduct.name ||
-        '',
-
-      partNo:
-        selectedProduct.part_number ||
-        selectedProduct.partNo ||
-        '',
-
-      category:
-        selectedProduct.category ||
-        '',
-
+      productName: selectedProduct.product_name || selectedProduct.name || '',
+      partNo: selectedProduct.part_number || selectedProduct.partNo || '',
+      category: selectedProduct.category || '',
       subCategory:
-        selectedProduct.sub_category ||
-        selectedProduct.subCategory ||
-        '',
-
-      make:
-        selectedProduct.make ||
-        '',
-
-      description:
-        selectedProduct.description ||
-        '',
+        selectedProduct.sub_category || selectedProduct.subCategory || '',
+      make: selectedProduct.make || '',
+      description: selectedProduct.description || '',
     };
 
     try {
@@ -347,169 +381,316 @@ function ProductsPage() {
   return (
     <>
       <Helmet>
-        <title>Products - MR Apex Industrial Components</title>
+        <title>
+          Products | Industrial Parts Catalogue | MR Apex Industrial Components
+        </title>
         <meta
           name="description"
-          content="Browse Volvo Parts, Fittings, Couplings, Pumps, Valves, MSV Spare and Other Machinery Items from MR Apex Industrial Components."
+          content="Browse hydraulic pumps, valves, fittings, hose pipes, couplings, Volvo parts, MSV spares and industrial machinery components. Submit RFQ for OEM, aftermarket and hard-to-find industrial parts across India."
         />
       </Helmet>
 
       <Header />
 
       <main>
-        <section className="py-5 bg-primary text-primary-foreground">
-          <div className="container-custom text-center max-w-7xl mx-auto">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">
-              {currentCategory
-                ? currentCategory.name
-                : 'Our Product Categories'}
-            </h1>
+        <section className="relative overflow-hidden bg-slate-950 text-white">
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950" />
+          <div className="absolute right-0 top-0 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
+          <div className="absolute left-0 bottom-0 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" />
 
-            {currentCategory && (
-              <div className="w-10 h-0.5 bg-white/70 mx-auto mb-2 rounded-full"></div>
-            )}
+          <div className="relative z-10 container-custom py-14 md:py-18">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 items-center">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-bold text-blue-300 mb-5">
+                  <Boxes className="w-4 h-4" />
+                  Industrial Product Catalogue
+                </div>
 
-            <p className="text-sm md:text-base opacity-90 leading-relaxed mb-3 max-w-4xl mx-auto">
-              {currentCategory
-                ? currentCategory.description
-                : 'Select a category to view available products, part numbers and enquiry options.'}
-            </p>
+                <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight mb-5">
+                  Source Industrial Parts, OEM Components & Machinery Spares
+                </h1>
 
-            {currentCategory && categories.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2 mt-3 max-w-7xl mx-auto">
-                {categories.map((category) => {
-                  const Icon = category.icon;
-                  const isActive = selectedCategory === category.name;
+                <p className="text-white/70 text-lg leading-relaxed max-w-3xl mb-7">
+                  Browse listed products or submit your RFQ for hydraulic pumps,
+                  valves, fittings, hose pipes, couplings, Volvo parts, MSV
+                  spares and hard-to-find industrial components across India.
+                </p>
 
-                  return (
-                    <button
-                      key={category.name}
-                      type="button"
-                      onClick={() => changeCategory(category.name)}
-                      className={`px-3 py-1.5 rounded-lg border transition-all font-semibold text-xs flex items-center gap-2 min-w-[105px] justify-center
-                        ${
-                          isActive
-                            ? 'bg-white text-primary border-white shadow-md'
-                            : 'bg-white/5 text-white border-white/30 hover:bg-white hover:text-primary'
-                        }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>
-                        {category.name} ({category.items.length})
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {currentCategory && subCategories.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2 mt-2 pt-2 border-t border-white/20 max-w-7xl mx-auto">
-                <button
-                  type="button"
-                  onClick={() => changeSubCategory(null)}
-                  className={`px-3 py-1.5 rounded-lg border transition-all font-semibold text-xs min-w-[105px]
-                    ${
-                      !selectedSubCategory
-                        ? 'bg-white text-primary border-white shadow-md'
-                        : 'bg-white/5 text-white border-white/30 hover:bg-white hover:text-primary'
-                    }`}
-                >
-                  All {currentCategory.name}
-                </button>
-
-                {subCategories.map((subCategory) => (
-                  <button
-                    key={subCategory}
-                    type="button"
-                    onClick={() => changeSubCategory(subCategory)}
-                    className={`px-3 py-1.5 rounded-lg border transition-all font-semibold text-xs min-w-[105px]
-                      ${
-                        selectedSubCategory === subCategory
-                          ? 'bg-white text-primary border-white shadow-md'
-                          : 'bg-white/5 text-white border-white/30 hover:bg-white hover:text-primary'
-                      }`}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <a
+                    href="#products-list"
+                    className="inline-flex items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-white hover:bg-primary/90 transition-colors"
                   >
-                    {subCategory}
-                  </button>
-                ))}
+                    Browse Products
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </a>
+
+                  <Link
+                    to="/contact"
+                    className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-extrabold text-white hover:bg-white/10 transition-colors"
+                  >
+                    Submit Industrial RFQ
+                  </Link>
+                </div>
               </div>
-            )}
+
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+                <h2 className="text-xl font-extrabold mb-5">
+                  Sourcing Support Includes
+                </h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    'OEM Components',
+                    'Aftermarket Options',
+                    'Hydraulic Parts',
+                    'Volvo Parts',
+                    'MSV Spares',
+                    'Bulk Procurement',
+                    'Part Number Search',
+                    'Image Based RFQ',
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      className="flex items-center gap-2 rounded-xl bg-slate-900/70 border border-white/10 px-3 py-3 text-sm font-semibold text-white/80"
+                    >
+                      <BadgeCheck className="w-4 h-4 text-blue-300 shrink-0" />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="section-padding bg-muted/50">
+        <section id="products-list" className="section-padding bg-muted/50">
           <div className="container-custom">
+            {(currentCategory || searchQuery || selectedMake) && (
+            <div className="mb-8 rounded-3xl border bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <SlidersHorizontal className="w-5 h-5 text-primary" />
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-extrabold text-foreground">
+                    Search & Filter Products
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Search by product name, part number, make, category or
+                    description.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr_1fr_auto] gap-3">
+                <div className="relative">
+                  <Search className="w-5 h-5 text-muted-foreground absolute left-4 top-1/2 -translate-y-1/2" />
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search product, part number, make..."
+                    className="w-full border rounded-xl pl-11 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <select
+                  value={selectedCategory || ''}
+                  onChange={(e) => {
+                    if (e.target.value) changeCategory(e.target.value);
+                    else clearFilters();
+                  }}
+                  className="w-full border rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((category) => (
+                    <option key={category.name} value={category.name}>
+                      {category.name} ({category.items.length})
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedMake}
+                  onChange={(e) => setSelectedMake(e.target.value)}
+                  className="w-full border rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="">All Makes</option>
+                  {makeOptions.map((make) => (
+                    <option key={make} value={make}>
+                      {make}
+                    </option>
+                  ))}
+                </select>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="h-12 rounded-xl"
+                >
+                  Clear
+                </Button>
+              </div>
+
+              {currentCategory && subCategories.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => changeSubCategory(null)}
+                    className={`px-4 py-2 rounded-xl border text-sm font-bold transition-all ${
+                      !selectedSubCategory
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-white text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    All {currentCategory.name}
+                  </button>
+
+                  {subCategories.map((subCategory) => (
+                    <button
+                      key={subCategory}
+                      type="button"
+                      onClick={() => changeSubCategory(subCategory)}
+                      className={`px-4 py-2 rounded-xl border text-sm font-bold transition-all ${
+                        selectedSubCategory === subCategory
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-white text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {subCategory}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            )}
+
             {loading ? (
-              <div className="text-center text-muted-foreground">
+              <div className="rounded-3xl border bg-white p-10 text-center text-muted-foreground">
                 Loading products...
               </div>
-            ) : !currentCategory ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {categories.map((category, index) => {
-                  const Icon = category.icon;
+            ) : !currentCategory && !searchQuery && !selectedMake ? (
+              <div>
+                <div className="flex items-end justify-between gap-4 mb-6">
+                  <div>
+                    <p className="text-primary font-semibold mb-1">
+                      Browse Categories
+                    </p>
+                    <h2 className="text-3xl font-extrabold text-foreground">
+                      Industrial Product Categories
+                    </h2>
+                  </div>
+                </div>
 
-                  return (
-                    <motion.button
-                      key={category.name}
-                      type="button"
-                      onClick={() => changeCategory(category.name)}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.35, delay: Math.min(index, 6) * 0.04 }}
-                      className="bg-card rounded-2xl p-8 shadow-sm border text-left hover:shadow-lg hover:-translate-y-1 transition-all [content-visibility:auto] [contain-intrinsic-size:280px]"
-                    >
-                      <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
-                        <Icon className="w-8 h-8 text-primary" />
-                      </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                  {categories.map((category, index) => {
+                    const Icon = category.icon;
 
-                      <h2 className="text-2xl font-bold mb-4 text-foreground">
-                        {category.name}
-                      </h2>
+                    return (
+                      <motion.button
+                        key={category.name}
+                        type="button"
+                        onClick={() => changeCategory(category.name)}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{
+                          duration: 0.35,
+                          delay: Math.min(index, 6) * 0.04,
+                        }}
+                        className="group bg-white rounded-3xl p-6 shadow-sm border text-left hover:shadow-xl hover:-translate-y-1 transition-all"
+                      >
+                        <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-5 group-hover:bg-primary transition-colors">
+                          <Icon className="w-7 h-7 text-primary group-hover:text-white transition-colors" />
+                        </div>
 
-                      <p className="text-muted-foreground leading-relaxed mb-3">
-                        {category.description}
-                      </p>
+                        <h2 className="text-xl font-extrabold mb-3 text-foreground">
+                          {category.name}
+                        </h2>
 
-                      <p className="text-sm text-muted-foreground mb-6">
-                        {category.items.length} products available
-                      </p>
+                        <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                          {category.description}
+                        </p>
 
-                      <span className="text-primary font-semibold">
-                        View Products →
-                      </span>
-                    </motion.button>
-                  );
-                })}
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold text-muted-foreground">
+                            {category.items.length} products
+                          </span>
+
+                          <span className="text-primary font-bold text-sm">
+                            View →
+                          </span>
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
               </div>
             ) : (
               <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedCategory(null);
-                    setSelectedSubCategory(null);
-                    setVisibleCount(PRODUCTS_PER_PAGE);
-                    window.history.pushState({}, '', '/products');
-                  }}
-                  className="mb-8"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Categories
-                </Button>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-7">
+                  <div>
+                    <p className="text-primary font-semibold mb-1">
+                      Product Results
+                    </p>
 
-                {visibleProducts.length === 0 ? (
-                  <div className="bg-white border rounded-2xl p-10 text-center text-muted-foreground">
-                    Products will be added soon in this category.
+                    <h2 className="text-3xl font-extrabold text-foreground">
+                      {currentCategory
+                        ? currentCategory.name
+                        : 'All Industrial Products'}
+                    </h2>
+
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Showing {displayedProducts.length} of{' '}
+                      {filteredProducts.length} matching products.
+                    </p>
+                  </div>
+
+                  {currentCategory && (
+                    <Button
+                      variant="outline"
+                      onClick={clearFilters}
+                      className="rounded-xl"
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back to Categories
+                    </Button>
+                  )}
+                </div>
+
+                {filteredProducts.length === 0 ? (
+                  <div className="bg-white border rounded-3xl p-10 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+                      <Search className="w-7 h-7 text-primary" />
+                    </div>
+
+                    <h3 className="text-2xl font-extrabold text-foreground mb-3">
+                      Can't find your required part?
+                    </h3>
+
+                    <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
+                      Submit your part number, machine details, drawing or
+                      product image. Our sourcing team can help identify
+                      suitable OEM or compatible aftermarket industrial
+                      components.
+                    </p>
+
+                    <Button asChild className="rounded-xl">
+                      <Link to="/contact">
+                        Submit RFQ
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Link>
+                    </Button>
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
                       {displayedProducts.map((item, index) => {
                         const message = getWhatsappMessage(
                           item,
-                          currentCategory.name
+                          currentCategory?.name || item.category
                         );
 
                         return (
@@ -518,15 +699,16 @@ function ProductsPage() {
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            transition={{ duration: 0.35, delay: Math.min(index, 6) * 0.04 }}
-                            className="bg-card rounded-2xl overflow-hidden shadow-sm border flex flex-col h-full [content-visibility:auto] [contain-intrinsic-size:360px]"
+                            transition={{
+                              duration: 0.35,
+                              delay: Math.min(index, 6) * 0.04,
+                            }}
+                            className="bg-white rounded-3xl overflow-hidden shadow-sm border flex flex-col h-full hover:shadow-xl hover:-translate-y-1 transition-all"
                           >
-                            <div className="h-56 bg-white border-b overflow-hidden flex items-center justify-center relative bg-gradient-to-br from-white to-slate-50">
+                            <div className="h-56 bg-gradient-to-br from-white to-slate-50 border-b overflow-hidden flex items-center justify-center">
                               <img
                                 src={
                                   item.image ||
-                                  item.imageUrl ||
-                                  item['Image URL'] ||
                                   'https://via.placeholder.com/500x350?text=Product+Image'
                                 }
                                 alt={item.name || 'Industrial Product'}
@@ -536,7 +718,7 @@ function ProductsPage() {
                                 sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                 width="500"
                                 height="350"
-                                className="w-full h-full object-contain p-3 transition-opacity duration-300"
+                                className="w-full h-full object-contain p-4"
                                 onError={(e) => {
                                   e.currentTarget.src =
                                     'https://via.placeholder.com/500x350?text=Product+Image';
@@ -545,19 +727,28 @@ function ProductsPage() {
                             </div>
 
                             <div className="p-6 flex flex-col flex-grow">
-                              <p className="text-sm font-semibold text-primary mb-2">
-                                {currentCategory.name}
-                                {item.subCategory && ` / ${item.subCategory}`}
-                              </p>
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                {item.category && (
+                                  <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                                    {item.category}
+                                  </span>
+                                )}
 
-                              <h2 className="text-xl font-bold text-foreground mb-3">
+                                {item.subCategory && (
+                                  <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground">
+                                    {item.subCategory}
+                                  </span>
+                                )}
+                              </div>
+
+                              <h2 className="text-xl font-extrabold text-foreground mb-3 leading-snug">
                                 {item.name}
                               </h2>
 
-                              <div className="text-sm text-muted-foreground mb-6 space-y-1">
+                              <div className="text-sm text-muted-foreground mb-5 space-y-1.5">
                                 {item.partNo && (
                                   <p>
-                                    <span className="font-semibold text-foreground">
+                                    <span className="font-bold text-foreground">
                                       Part Number:
                                     </span>{' '}
                                     {item.partNo}
@@ -566,7 +757,7 @@ function ProductsPage() {
 
                                 {item.make && (
                                   <p>
-                                    <span className="font-semibold text-foreground">
+                                    <span className="font-bold text-foreground">
                                       Make:
                                     </span>{' '}
                                     {item.make}
@@ -574,15 +765,24 @@ function ProductsPage() {
                                 )}
 
                                 {item.description && (
-                                  <p className="pt-2">{item.description}</p>
+                                  <p className="pt-2 line-clamp-3">
+                                    {item.description}
+                                  </p>
                                 )}
                               </div>
 
                               <div className="mt-auto space-y-3">
-                                <Button asChild variant="outline" className="w-full">
+                                <Button
+                                  asChild
+                                  variant="outline"
+                                  className="w-full rounded-xl"
+                                >
                                   <Link
                                     to={`/products/${
-                                      item.slug || makeSlug(`${item.name || ''} ${item.partNo || ''}`)
+                                      item.slug ||
+                                      makeSlug(
+                                        `${item.name || ''} ${item.partNo || ''}`
+                                      )
                                     }`}
                                   >
                                     View Details
@@ -591,7 +791,7 @@ function ProductsPage() {
 
                                 <Button
                                   asChild
-                                  className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white"
+                                  className="w-full rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white"
                                 >
                                   <a
                                     href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
@@ -607,9 +807,12 @@ function ProductsPage() {
 
                                 <Button
                                   variant="outline"
-                                  className="w-full"
+                                  className="w-full rounded-xl"
                                   onClick={() =>
-                                    openQuoteForm(item, currentCategory.name)
+                                    openQuoteForm(
+                                      item,
+                                      currentCategory?.name || item.category
+                                    )
                                   }
                                 >
                                   <Send className="w-4 h-4 mr-2" />
@@ -627,6 +830,7 @@ function ProductsPage() {
                         <Button
                           type="button"
                           variant="outline"
+                          className="rounded-xl"
                           onClick={() =>
                             setVisibleCount((prev) => prev + PRODUCTS_PER_PAGE)
                           }
@@ -635,7 +839,8 @@ function ProductsPage() {
                         </Button>
 
                         <p className="text-sm text-muted-foreground mt-3">
-                          Showing {displayedProducts.length} of {visibleProducts.length} products
+                          Showing {displayedProducts.length} of{' '}
+                          {filteredProducts.length} products
                         </p>
                       </div>
                     )}
@@ -645,11 +850,42 @@ function ProductsPage() {
             )}
           </div>
         </section>
+
+        <section className="bg-slate-950 text-white py-10">
+          <div className="container-custom">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 rounded-3xl border border-white/10 bg-white/5 p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-6 h-6 text-blue-300" />
+                </div>
+
+                <div>
+                  <h3 className="text-2xl font-extrabold mb-2">
+                    Looking for a hard-to-find industrial part?
+                  </h3>
+
+                  <p className="text-white/65 leading-relaxed">
+                    If the product is not listed, share your part number,
+                    product image, drawing or machine details. MR Apex can help
+                    identify suitable sourcing options.
+                  </p>
+                </div>
+              </div>
+
+              <Button asChild className="rounded-xl shrink-0">
+                <Link to="/contact">
+                  Submit Requirement
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
       </main>
 
       {selectedProduct && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 relative">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 relative shadow-2xl">
             <button
               type="button"
               onClick={() => setSelectedProduct(null)}
@@ -658,7 +894,7 @@ function ProductsPage() {
               <X className="w-5 h-5" />
             </button>
 
-            <h2 className="text-2xl font-bold mb-2">Request Quote</h2>
+            <h2 className="text-2xl font-extrabold mb-2">Request Quote</h2>
 
             <p className="text-sm text-gray-600 mb-5">
               {selectedProduct.name}
@@ -673,7 +909,7 @@ function ProductsPage() {
                 placeholder="Your Name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full border rounded-lg px-4 py-3"
+                className="w-full border rounded-xl px-4 py-3"
               />
 
               <input
@@ -681,21 +917,21 @@ function ProductsPage() {
                 placeholder="Mobile / WhatsApp Number"
                 value={form.mobile}
                 onChange={(e) => setForm({ ...form, mobile: e.target.value })}
-                className="w-full border rounded-lg px-4 py-3"
+                className="w-full border rounded-xl px-4 py-3"
               />
 
               <input
                 placeholder="Email Optional"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full border rounded-lg px-4 py-3"
+                className="w-full border rounded-xl px-4 py-3"
               />
 
               <input
                 placeholder="Company Name"
                 value={form.company}
                 onChange={(e) => setForm({ ...form, company: e.target.value })}
-                className="w-full border rounded-lg px-4 py-3"
+                className="w-full border rounded-xl px-4 py-3"
               />
 
               <input
@@ -704,7 +940,7 @@ function ProductsPage() {
                 onChange={(e) =>
                   setForm({ ...form, company_address: e.target.value })
                 }
-                className="w-full border rounded-lg px-4 py-3"
+                className="w-full border rounded-xl px-4 py-3"
               />
 
               <input
@@ -713,7 +949,7 @@ function ProductsPage() {
                 onChange={(e) =>
                   setForm({ ...form, quantity: e.target.value })
                 }
-                className="w-full border rounded-lg px-4 py-3"
+                className="w-full border rounded-xl px-4 py-3"
               />
 
               <textarea
@@ -722,10 +958,14 @@ function ProductsPage() {
                 onChange={(e) =>
                   setForm({ ...form, message: e.target.value })
                 }
-                className="w-full border rounded-lg px-4 py-3 min-h-[100px]"
+                className="w-full border rounded-xl px-4 py-3 min-h-[100px]"
               />
 
-              <Button type="submit" className="w-full" disabled={sending}>
+              <Button
+                type="submit"
+                className="w-full rounded-xl"
+                disabled={sending}
+              >
                 {sending ? 'Submitting...' : 'Submit Enquiry'}
               </Button>
             </form>
