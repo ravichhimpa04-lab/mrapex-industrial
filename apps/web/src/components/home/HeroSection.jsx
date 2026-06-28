@@ -36,7 +36,7 @@ function HeroSection() {
       <div
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: "url('/images/mr-apex-hero-bg.png')",
+          backgroundImage: "url('/images/mr-apex-hero-bg.webp')",
           backgroundSize: 'cover',
           backgroundPosition: 'center center',
           backgroundRepeat: 'no-repeat',
