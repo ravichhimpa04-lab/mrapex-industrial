@@ -2,7 +2,9 @@ import React from 'react';
 import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import ScrollToTop from './components/ScrollToTop';
-import AIAssistantWidget from './components/AIAssistantWidget';
+const AIAssistantWidget = React.lazy(() =>
+  import('./components/AIAssistantWidget')
+);
 
 import HomePage from './pages/HomePage.jsx';
 import AboutUsPage from './components/AboutUsPage.jsx';
@@ -75,7 +77,9 @@ function App() {
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
 
-            <AIAssistantWidget />
+            <React.Suspense fallback={null}>
+  <AIAssistantWidget />
+</React.Suspense>
       <Toaster />
     </Router>
   );
