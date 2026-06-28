@@ -51,10 +51,10 @@ function Header() {
 
             <div className="hidden md:flex items-center">
               <Button asChild className="h-12 px-6 rounded-xl font-extrabold shadow-lg">
-                <Link to="/contact">
-                  Submit Requirement
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
+                <a href="/contact#rfq-form">
+  Submit Requirement
+  <ArrowRight className="w-4 h-4 ml-2" />
+</a>
               </Button>
             </div>
 
@@ -93,10 +93,10 @@ function Header() {
 
                   <div className="pt-5 mt-5 border-t">
                     <Button asChild className="w-full h-12 rounded-xl font-extrabold">
-                      <Link to="/contact" onClick={() => setIsOpen(false)}>
-                        Submit Requirement
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Link>
+                      <a href="/contact#rfq-form" onClick={() => setIsOpen(false)}>
+  Submit Requirement
+  <ArrowRight className="w-4 h-4 ml-2" />
+</a>
                     </Button>
                   </div>
                 </div>
