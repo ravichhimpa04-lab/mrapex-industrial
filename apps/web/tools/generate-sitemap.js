@@ -7,10 +7,18 @@ dotenv.config({
   path: path.resolve(process.cwd(), '.env'),
 });
 
+dotenv.config({
+  path: path.resolve(process.cwd(), 'apps', 'web', '.env'),
+});
+
 const SITE_URL = 'https://mrapexindustrial.in';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+console.log('SITEMAP ENV CHECK:', {
+  supabaseUrl: Boolean(supabaseUrl),
+  supabaseAnonKey: Boolean(supabaseAnonKey),
+});
 
 const makeSlug = (text = '') =>
   text
@@ -22,9 +30,10 @@ const makeSlug = (text = '') =>
 const staticPages = [
   '/',
   '/products',
+  '/industries',
+  '/brands',
   '/about',
   '/contact',
-  '/industries',
 ];
 
 const escapeXml = (value = '') =>
@@ -84,10 +93,11 @@ ${allPages
 `;
 
   const outputPath = path.resolve(
-    process.cwd(),
-    'public',
-    'sitemap.xml'
-  );
+  'apps',
+  'web',
+  'public',
+  'sitemap.xml'
+);
 
   fs.writeFileSync(outputPath, xml, 'utf8');
 

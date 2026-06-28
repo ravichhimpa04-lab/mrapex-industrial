@@ -7,43 +7,43 @@
     <loc>https://mrapexindustrial.in/products</loc>
   </url>
   <url>
+    <loc>https://mrapexindustrial.in/industries</loc>
+  </url>
+  <url>
+    <loc>https://mrapexindustrial.in/brands</loc>
+  </url>
+  <url>
     <loc>https://mrapexindustrial.in/about</loc>
   </url>
   <url>
     <loc>https://mrapexindustrial.in/contact</loc>
   </url>
   <url>
-    <loc>https://mrapexindustrial.in/industries</loc>
-  </url>
-  <url>
-    <loc>https://mrapexindustrial.in/products/portable-water-supply-unit</loc>
+    <loc>https://mrapexindustrial.in/products/petrol-engine-water-pump-wp20-series-wp30-series-wp40-series</loc>
   </url>
   <url>
     <loc>https://mrapexindustrial.in/products/nord-lock-wedge-lock-washer-nl-series</loc>
   </url>
   <url>
-    <loc>https://mrapexindustrial.in/products/pneumatic-air-exhaust-silencer</loc>
+    <loc>https://mrapexindustrial.in/products/internal-gear-pump-igp-series</loc>
   </url>
   <url>
-    <loc>https://mrapexindustrial.in/products/petrol-engine-water-pump</loc>
+    <loc>https://mrapexindustrial.in/products/camlock-male-adapter-type-f-series</loc>
   </url>
   <url>
-    <loc>https://mrapexindustrial.in/products/internal-gear-pump</loc>
-  </url>
-  <url>
-    <loc>https://mrapexindustrial.in/products/stainless-steel-braided-flexible-hose</loc>
-  </url>
-  <url>
-    <loc>https://mrapexindustrial.in/products/camlock-male-adapter</loc>
+    <loc>https://mrapexindustrial.in/products/lock-washer-tab-washer-mb-series</loc>
   </url>
   <url>
     <loc>https://mrapexindustrial.in/products/camlock-hose-coupling-c-150</loc>
   </url>
   <url>
-    <loc>https://mrapexindustrial.in/products/lock-washer-tab-washer</loc>
+    <loc>https://mrapexindustrial.in/products/stainless-steel-braided-flexible-hose-ssh-series</loc>
   </url>
   <url>
-    <loc>https://mrapexindustrial.in/products/industrial-communication-gateway-cg-5001</loc>
+    <loc>https://mrapexindustrial.in/products/portable-water-supply-unit-pwsu-100</loc>
+  </url>
+  <url>
+    <loc>https://mrapexindustrial.in/products/pneumatic-air-exhaust-silencer-psl-series</loc>
   </url>
   <url>
     <loc>https://mrapexindustrial.in/products/camlock-reducer-coupling-c-200-visible</loc>
@@ -52,16 +52,16 @@
     <loc>https://mrapexindustrial.in/products/solenoid-valve-dac-db220e015</loc>
   </url>
   <url>
-    <loc>https://mrapexindustrial.in/products/hydraulic-flow-control-valve</loc>
+    <loc>https://mrapexindustrial.in/products/hydraulic-pump-assembly-hpa-series</loc>
   </url>
   <url>
-    <loc>https://mrapexindustrial.in/products/camlock-hose-coupling</loc>
+    <loc>https://mrapexindustrial.in/products/hydraulic-flow-control-valve-fcv-series</loc>
   </url>
   <url>
     <loc>https://mrapexindustrial.in/products/pressure-transmitter-pp20s</loc>
   </url>
   <url>
-    <loc>https://mrapexindustrial.in/products/hydraulic-pump-assembly</loc>
+    <loc>https://mrapexindustrial.in/products/industrial-communication-gateway-cg-5001</loc>
   </url>
   <url>
     <loc>https://mrapexindustrial.in/products/hydraulic-main-pump</loc>
@@ -71,6 +71,9 @@
   </url>
   <url>
     <loc>https://mrapexindustrial.in/products/hydraulic-vane-pump-assembly</loc>
+  </url>
+  <url>
+    <loc>https://mrapexindustrial.in/products/camlock-hose-coupling-c-150</loc>
   </url>
   <url>
     <loc>https://mrapexindustrial.in/products/travel-motor-assembly</loc>
@@ -274,12 +277,6 @@
     <loc>https://mrapexindustrial.in/products/injector-nozzle</loc>
   </url>
   <url>
-    <loc>https://mrapexindustrial.in/products/o-ring-seal-kit</loc>
-  </url>
-  <url>
-    <loc>https://mrapexindustrial.in/products/male-hose-barb-connector</loc>
-  </url>
-  <url>
     <loc>https://mrapexindustrial.in/products/fuel-rail</loc>
   </url>
   <url>
@@ -305,6 +302,12 @@
   </url>
   <url>
     <loc>https://mrapexindustrial.in/products/quick-coupling</loc>
+  </url>
+  <url>
+    <loc>https://mrapexindustrial.in/products/o-ring-seal-kit</loc>
+  </url>
+  <url>
+    <loc>https://mrapexindustrial.in/products/male-hose-barb-connector</loc>
   </url>
   <url>
     <loc>https://mrapexindustrial.in/products/hydraulic-piston-pump-hpx-240-b-11-visible</loc>
@@ -392,5 +395,8 @@
   </url>
   <url>
     <loc>https://mrapexindustrial.in/products/hydraulic-reservoir-tank</loc>
+  </url>
+  <url>
+    <loc>https://mrapexindustrial.in/products/test-test</loc>
   </url>
 </urlset>
