@@ -90,8 +90,7 @@ ${allPages
 `;
 
   const outputPath = path.resolve(
-  'apps',
-  'web',
+  process.cwd(),
   'public',
   'sitemap.xml'
 );
