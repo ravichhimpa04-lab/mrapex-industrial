@@ -83,18 +83,43 @@ function App() {
 
 function NotFoundPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold text-primary mb-4">404</h1>
-        <p className="text-xl text-muted-foreground mb-6">Page not found</p>
-        <a
-          href="/"
-          className="inline-block px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all duration-200"
-        >
-          Back to home
-        </a>
-      </div>
-    </div>
+    <>
+      <Header />
+
+      <main className="min-h-[70vh] bg-muted/40 flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full text-center bg-white border rounded-3xl p-8 md:p-12 shadow-sm">
+          <div className="text-7xl font-extrabold text-primary mb-4">404</div>
+
+          <h1 className="text-3xl md:text-4xl font-extrabold text-foreground mb-4">
+            Page Not Found
+          </h1>
+
+          <p className="text-muted-foreground leading-relaxed mb-8">
+            The page you are looking for may have been moved or does not exist.
+            You can go back to our industrial product catalogue or submit your
+            requirement for sourcing support.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              to="/products"
+              className="inline-flex items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-white hover:bg-primary/90 transition-colors"
+            >
+              Browse Products
+            </Link>
+
+            <Link
+              to="/contact"
+              className="inline-flex items-center justify-center rounded-xl border px-6 py-3 text-sm font-extrabold text-foreground hover:bg-muted transition-colors"
+            >
+              Submit Requirement
+            </Link>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </>
   );
 }
 
