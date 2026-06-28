@@ -15,10 +15,7 @@ const SITE_URL = 'https://mrapexindustrial.in';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
-console.log('SITEMAP ENV CHECK:', {
-  supabaseUrl: Boolean(supabaseUrl),
-  supabaseAnonKey: Boolean(supabaseAnonKey),
-});
+
 
 const makeSlug = (text = '') =>
   text
