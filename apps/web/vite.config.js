@@ -290,10 +290,18 @@ export default defineConfig({
 	},
 	customLogger: logger,
 	plugins: [
-		...(isDev ? [inlineEditPlugin(), editModeDevPlugin(), selectionModePlugin(), iframeRouteRestorationPlugin(), pocketbaseAuthPlugin()] : []),
-		react(),
-		addTransformIndexHtml
-	],
+  ...(isDev
+    ? [
+        inlineEditPlugin(),
+        editModeDevPlugin(),
+        selectionModePlugin(),
+        iframeRouteRestorationPlugin(),
+        pocketbaseAuthPlugin(),
+        addTransformIndexHtml,
+      ]
+    : []),
+  react(),
+],
 	server: {
 		port: 3000,
 		cors: true,
