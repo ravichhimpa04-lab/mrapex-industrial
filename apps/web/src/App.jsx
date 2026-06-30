@@ -1,7 +1,12 @@
-import React from 'react';
-import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, Route, Routes, BrowserRouter as Router, useLocation } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
+import { supabase } from '@/lib/supabaseClient';
+
 import ScrollToTop from './components/ScrollToTop';
+import Header from '@/components/Header.jsx';
+import Footer from '@/components/Footer.jsx';
+
 const AIAssistantWidget = React.lazy(() =>
   import('./components/AIAssistantWidget')
 );
@@ -22,9 +27,39 @@ import QuotationsPage from '@/pages/QuotationsPage.jsx';
 import CreateQuotationPage from '@/pages/CreateQuotationPage.jsx';
 import QuotationDetailPage from '@/pages/QuotationDetailPage.jsx';
 
-function App() {
+function AppContent() {
+  const location = useLocation();
+
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [checkingMaintenance, setCheckingMaintenance] = useState(true);
+
+  useEffect(() => {
+    const checkMaintenanceMode = async () => {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'maintenance_mode')
+        .single();
+
+      setMaintenanceMode(!error && data?.value === 'true');
+      setCheckingMaintenance(false);
+    };
+
+    checkMaintenanceMode();
+  }, []);
+
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  if (checkingMaintenance) {
+    return null;
+  }
+
+  if (maintenanceMode && !isAdminRoute) {
+    return <MaintenancePage />;
+  }
+
   return (
-    <Router>
+    <>
       <ScrollToTop />
 
       <Routes>
@@ -66,22 +101,53 @@ function App() {
         />
 
         <Route
-  path="/admin/quotations/:id"
-  element={
-    <ProtectedAdmin>
-      <QuotationDetailPage />
-    </ProtectedAdmin>
-  }
-/>
+          path="/admin/quotations/:id"
+          element={
+            <ProtectedAdmin>
+              <QuotationDetailPage />
+            </ProtectedAdmin>
+          }
+        />
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
 
-            <React.Suspense fallback={null}>
-  <AIAssistantWidget />
-</React.Suspense>
+      {!isAdminRoute && (
+        <React.Suspense fallback={null}>
+          <AIAssistantWidget />
+        </React.Suspense>
+      )}
+
       <Toaster />
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
+  );
+}
+
+function MaintenancePage() {
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-white px-6 text-center">
+      <div className="max-w-xl">
+        <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">
+          Website Under Maintenance
+        </h1>
+
+        <p className="text-gray-600 text-lg mb-2">
+          MR Apex Industrial Components website is temporarily unavailable.
+        </p>
+
+        <p className="text-gray-500">
+          We will be back soon.
+        </p>
+      </div>
+    </main>
   );
 }
 

@@ -91,6 +91,8 @@ function AdminDashboard() {
 
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+const [updatingMaintenance, setUpdatingMaintenance] = useState(false);
 
 
   const formSubCategories = useMemo(() => {
@@ -134,6 +136,17 @@ function AdminDashboard() {
     await fetchCategories();
     await fetchSubCategories();
   };
+  const fetchMaintenanceMode = async () => {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'maintenance_mode')
+    .single();
+
+  if (!error) {
+    setMaintenanceMode(data?.value === 'true');
+  }
+};
 
   const fetchEnquiries = async () => {
     try {
@@ -171,9 +184,10 @@ function AdminDashboard() {
       }
 
       await fetchProducts();
-      await fetchCategorySetup();
-      await fetchEnquiries();
-      setCheckingAccess(false);
+await fetchCategorySetup();
+await fetchEnquiries();
+await fetchMaintenanceMode();
+setCheckingAccess(false);
     };
 
     verifyAccess();
@@ -264,6 +278,38 @@ function AdminDashboard() {
     await supabase.auth.signOut();
     window.location.href = '/admin-login';
   };
+  const toggleMaintenanceMode = async () => {
+  const nextValue = !maintenanceMode;
+
+  const confirmText = nextValue
+    ? 'Website ko Maintenance Mode me dalna hai? Public website par sirf maintenance page dikhega.'
+    : 'Website ko wapas Live karna hai? Public website normal open hogi.';
+
+  const confirmed = window.confirm(confirmText);
+  if (!confirmed) return;
+
+  try {
+    setUpdatingMaintenance(true);
+
+    const { error } = await supabase
+      .from('site_settings')
+      .update({
+        value: String(nextValue),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('key', 'maintenance_mode');
+
+    if (error) throw error;
+
+    setMaintenanceMode(nextValue);
+
+    alert(nextValue ? 'Maintenance Mode ON ho gaya.' : 'Website Live ho gayi.');
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    setUpdatingMaintenance(false);
+  }
+};
   const sendTestEmail = async () => {
   try {
     const {
@@ -732,7 +778,19 @@ const payload = {
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+  <Button
+    onClick={toggleMaintenanceMode}
+    disabled={updatingMaintenance}
+    variant={maintenanceMode ? 'destructive' : 'outline'}
+  >
+    {updatingMaintenance
+      ? 'Updating...'
+      : maintenanceMode
+        ? 'Maintenance ON'
+        : 'Website Live'}
+  </Button>
+
   <Button onClick={sendTestEmail} variant="outline">
     Send Test Email
   </Button>
