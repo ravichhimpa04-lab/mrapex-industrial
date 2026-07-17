@@ -89,8 +89,6 @@ async function launchPdfBrowser() {
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-gpu',
-      '--no-zygote',
-      '--single-process',
     ],
   };
 
@@ -339,6 +337,7 @@ router.post('/quotations/:id/send', async (req, res) => {
     }
 
     const { id } = req.params;
+    const customMessageHtml = String(req.body?.customMessage || '').trim();
 
     const { data: quotation, error: quotationError } = await supabase
       .from('quotations')
@@ -360,6 +359,13 @@ router.post('/quotations/:id/send', async (req, res) => {
       });
     }
 
+    if (quotation.do_not_contact) {
+      return res.status(400).json({
+        success: false,
+        error: 'This customer is marked as "do not contact" — quotation was not sent.',
+      });
+    }
+
     const { data: items, error: itemsError } = await supabase
       .from('quotation_items')
       .select('*')
@@ -376,6 +382,7 @@ router.post('/quotations/:id/send', async (req, res) => {
     const html = buildQuotationHTML(quotation, items || []);
 const pdfFile = await makePdfBuffer(html);
 const quotationFileName = `${quotation.quotation_no.replaceAll('/', '-')}.pdf`;
+const isRevision = Number(quotation.revision_count || 0) > 0;
 
 
 const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -401,7 +408,10 @@ const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
     htmlContent: `
       <div style="font-family: Arial, sans-serif; color:#111827;">
         <p>Dear ${escapeHtml(quotation.customer_name || 'Customer')},</p>
-        <p>Please find attached our quotation <b>${escapeHtml(quotation.quotation_no)}</b>.</p>
+        ${customMessageHtml || ''}
+        <p>Please find attached our ${isRevision ? 'revised ' : ''}quotation <b>${escapeHtml(
+          quotation.quotation_no
+        )}</b>.</p>
         <p>Regards,<br/><b>MR Apex Industrial Components</b></p>
       </div>
     `,
@@ -437,6 +447,108 @@ console.log('BREVO EMAIL SENT:', brevoResult);
     });
   } catch (error) {
     console.error('SEND QUOTATION ERROR:', error);
+
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Sends a plain, custom follow-up message (not a full quotation/PDF resend)
+// as a reply on the existing conversation thread with the customer. Used for
+// things like "tell them we'll reduce delivery time" without changing the
+// quoted rate/PDF at all.
+router.post('/quotations/:id/send-message', async (req, res) => {
+  try {
+    const auth = await getAuthenticatedAdmin(req);
+
+    if (auth.errorStatus) {
+      return res.status(auth.errorStatus).json({
+        success: false,
+        error: auth.errorMessage,
+      });
+    }
+
+    const { id } = req.params;
+    const messageHtml = String(req.body?.messageHtml || '').trim();
+
+    if (!messageHtml) {
+      return res.status(400).json({
+        success: false,
+        error: 'messageHtml is required',
+      });
+    }
+
+    const { data: quotation, error: quotationError } = await supabase
+      .from('quotations')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (quotationError || !quotation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Quotation not found',
+      });
+    }
+
+    if (!quotation.email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Customer email not found',
+      });
+    }
+
+    if (quotation.do_not_contact) {
+      return res.status(400).json({
+        success: false,
+        error: 'This customer is marked as "do not contact" — message was not sent.',
+      });
+    }
+
+    const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: {
+          name: process.env.FROM_NAME || 'MR Apex Industrial Components',
+          email: process.env.FROM_EMAIL || 'sales@mrapexindustrial.in',
+        },
+        to: [
+          {
+            email: quotation.email,
+            name: quotation.customer_name || 'Customer',
+          },
+        ],
+        bcc: allowedEmails.map((email) => ({ email })),
+        subject: `Re: Quotation ${quotation.quotation_no} - MR Apex Industrial Components`,
+        htmlContent: `
+          <div style="font-family: Arial, sans-serif; color:#111827;">
+            ${messageHtml}
+            <p style="margin-top:24px;">Regards,<br/><b>MR Apex Industrial Components</b></p>
+          </div>
+        `,
+      }),
+    });
+
+    const brevoResult = await brevoResponse.json();
+
+    if (!brevoResponse.ok) {
+      console.error('BREVO MESSAGE SEND ERROR:', brevoResult);
+      throw new Error(brevoResult.message || 'Brevo message send failed');
+    }
+
+    return res.json({
+      success: true,
+      message: 'Message sent successfully',
+    });
+  } catch (error) {
+    console.error('SEND MESSAGE ERROR:', error);
 
     return res.status(500).json({
       success: false,

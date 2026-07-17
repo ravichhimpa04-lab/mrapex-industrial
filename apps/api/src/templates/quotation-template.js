@@ -79,9 +79,12 @@ export function buildQuotationHTML(quotation = {}, items = []) {
   html = html.replaceAll('20 Jun 2026', escapeHtml(formatDate(quotation.quotation_date)));
   html = html.replaceAll('20 Jul 2026', escapeHtml(formatDate(quotation.valid_until)));
 
-  html = html.replaceAll('RFQ/SBE/0612', escapeHtml(quotation.rfq_reference || '-'));
+  html = html.replaceAll(
+    'RFQ/SBE/0612',
+    escapeHtml(quotation.enquiry_no ? `Enquiry #${quotation.enquiry_no}` : quotation.rfq_reference || '-')
+  );
   html = html.replaceAll('PO-ENQ/2026/118', escapeHtml(quotation.customer_reference || '-'));
-  html = html.replaceAll('Priya Sharma', escapeHtml(quotation.prepared_by || 'Ravi Chhimpa'));
+  html = html.replaceAll('Priya Sharma', escapeHtml(quotation.prepared_by || ''));
   html = html.replaceAll('Vikram Singh Rathore', escapeHtml(quotation.sales_executive || 'MR Apex Sales'));
 
   html = html.replaceAll('Shree Balaji Engineering Works Pvt. Ltd.', escapeHtml(quotation.company_name || ''));
@@ -107,6 +110,21 @@ export function buildQuotationHTML(quotation = {}, items = []) {
   html = html.replaceAll('CRM-2026-04521', escapeHtml(quotation.customer_ref_id || '-'));
   html = html.replaceAll('TRK-APX-118827', escapeHtml(quotation.tracking_id || '-'));
 
+  html = html.replaceAll(
+    '30% advance with Purchase Order, balance against Proforma Invoice prior to dispatch.',
+    escapeHtml(quotation.terms || '-')
+  );
+
+  html = html.replaceAll(
+    '7&ndash;10 working days from order confirmation, subject to stock',
+    escapeHtml(quotation.delivery_time || '-')
+  );
+
+  html = html.replaceAll(
+    '12 months from date of dispatch against manufacturing defects',
+    escapeHtml(quotation.warranty_terms || '-')
+  );
+
   html = html.replace(
     /<tbody>[\s\S]*?<\/tbody>/,
     `<tbody>${buildItemsRows(items, quotation)}</tbody>`
@@ -118,7 +136,7 @@ export function buildQuotationHTML(quotation = {}, items = []) {
   html = html.replaceAll('₹ 3,200.00', money(quotation.freight_amount));
   html = html.replaceAll('₹ 800.00', money(quotation.insurance_amount));
   html = html.replaceAll('₹ 36,943.20', money(quotation.gst_amount));
-  html = html.replaceAll('&minus; ₹ 0.20', money(quotation.round_off));
+  html = html.replaceAll('&minus; ₹ 0.20', `− ${money(quotation.round_off || 0)}`);
   html = html.replaceAll('₹ 2,42,183.00', money(quotation.grand_total));
 
   html = html.replaceAll(

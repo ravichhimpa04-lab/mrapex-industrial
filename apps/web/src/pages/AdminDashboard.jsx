@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import * as XLSX from 'xlsx';
 
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 const ENQUIRY_API_URL =
@@ -771,6 +772,23 @@ const payload = {
 >
   Quotations
 </Button>
+<Button
+  variant="outline"
+  onClick={() => {
+    window.location.href = '/admin/apex';
+  }}
+>
+  🤖 Apex
+</Button>
+<Button
+  variant="outline"
+  onClick={() => {
+    window.location.href = '/admin/ceo-dashboard';
+  }}
+>
+  📊 CEO Dashboard
+</Button>
+
             </div>
 
             <p className="text-gray-500 mt-2">

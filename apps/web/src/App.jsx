@@ -26,6 +26,8 @@ import ProtectedAdmin from '@/components/ProtectedAdmin.jsx';
 import QuotationsPage from '@/pages/QuotationsPage.jsx';
 import CreateQuotationPage from '@/pages/CreateQuotationPage.jsx';
 import QuotationDetailPage from '@/pages/QuotationDetailPage.jsx';
+import ApexDashboard from '@/admin/components/ApexDashboard.jsx';
+import CEODashboard from '@/admin/components/CEODashboard.jsx';
 
 function AppContent() {
   const location = useLocation();
@@ -105,6 +107,24 @@ function AppContent() {
           element={
             <ProtectedAdmin>
               <QuotationDetailPage />
+            </ProtectedAdmin>
+          }
+        />
+
+        <Route
+          path="/admin/apex"
+          element={
+            <ProtectedAdmin>
+              <ApexDashboard />
+            </ProtectedAdmin>
+          }
+        />
+
+        <Route
+          path="/admin/ceo-dashboard"
+          element={
+            <ProtectedAdmin>
+              <CEODashboard />
             </ProtectedAdmin>
           }
         />

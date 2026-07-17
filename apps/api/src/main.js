@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -5,10 +6,13 @@ import morgan from 'morgan';
 import dns from 'dns/promises';
 
 import routes from './routes/index.js';
+import pushRoutes from './routes/push.js';
 import { errorMiddleware } from './middleware/error.js';
 import { globalRateLimit } from './middleware/global-rate-limit.js';
 import logger from './utils/logger.js';
 import { BodyLimit } from './constants/common.js';
+import { startReplyMonitor } from './utils/replyMonitor.js';
+import { startFollowUpMonitor } from './utils/followUpMonitor.js';
 
 const app = express();
 
@@ -79,6 +83,7 @@ app.use(express.urlencoded({
 }));
 
 app.use('/', routes());
+app.use('/push', pushRoutes);
 
 app.use(errorMiddleware);
 
@@ -90,6 +95,12 @@ const port = process.env.PORT || 3001;
 
 app.listen(port, () => {
     logger.info(`🚀 API Server running on port ${port}`);
+    // Reply Monitor and Follow-up Monitor have moved to n8n workflows
+    // (Apex_Reply_Monitor.json / Apex_Follow_Up_Monitor.json) to avoid running
+    // the same business logic in two places. Re-enable these only if the n8n
+    // workflows are turned off.
+    // startReplyMonitor();
+    // startFollowUpMonitor();
 });
 
 export default app;
