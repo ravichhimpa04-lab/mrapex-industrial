@@ -273,7 +273,7 @@ Voice input: "${transcript}"
 Classify this into exactly one intent and extract relevant fields. Return ONLY valid JSON, no markdown, no code fences, no explanation:
 
 {
-  "intent": "create_quotation" | "revise_quotation" | "send_message" | "set_contact_preference" | "delete_enquiry" | "discuss" | "unclear",
+  "intent": "create_quotation" | "revise_quotation" | "send_message" | "set_contact_preference" | "delete_enquiry" | "admin_update" | "admin_query" | "discuss" | "unclear",
   "enquiry_number": number or null,
   "company_name": string or null,
   "customer_name": string or null,
@@ -290,6 +290,10 @@ Classify this into exactly one intent and extract relevant fields. Return ONLY v
   "delete_all": boolean or null,
   "enquiry_number_from": number or null,
   "enquiry_number_to": number or null,
+  "admin_table": "products" | "categories" | "sub_categories" | null,
+  "admin_record_identifier": string or null,
+  "admin_field": "product_name" | "part_number" | "category" | "sub_category" | "make" | "description" | "status" | "name" | null,
+  "admin_value": string or null,
   "notes": string or null
 }
 
@@ -300,6 +304,8 @@ Rules:
 - CRITICAL DISAMBIGUATION: if the owner mentions a conditional/hypothetical offer (e.g. "agar aaj deal close karte hain toh 2% aur denge") WITHOUT any explicit instruction to send/resend a quotation, this is "send_message" — put the conditional offer into "message_content", do NOT set "discount_percent" or "rate". BUT — if the owner ALSO explicitly says to send/resend the quotation (words like "bhejo", "bhej do", "resend karo", "dobara se bhejo", "phir se bhejo"), then it is "revise_quotation" regardless of any conditional language present — an explicit send/resend instruction ALWAYS wins. In that case, set "rate"/"discount_percent" as normal from any firm numbers given, and put the conditional/incentive wording into "revision_message" so it gets included as an explanatory note in the resend email. Only classify as "send_message" when there is truly no explicit instruction to send/resend the formal quotation at all.
 - "send_message": the owner wants Apex to communicate something to the customer that is NOT a formal quotation/pricing change — e.g. "unse bol do delivery time kam kar denge", "customer ko batao hum jaldi bhej denge", "unko ek mail kar do ki hum soch rahe hain", "reply kar do unhe", or a CONDITIONAL incentive like "bol do agar aaj close karte hain toh 2% aur discount de denge". This is for general correspondence/discussion with the customer, written as a professional email, WITHOUT resending the quotation PDF or changing its actual rate. Put whatever the owner wants conveyed (their intent, in their own words or paraphrased, including any conditions like "if you confirm today") into "message_content".
 - "set_contact_preference": the owner wants to STOP (or resume) any further emails — including automatic follow-up reminders — being sent to a specific customer/enquiry/quotation. e.g. "ab isko koi mail mat karo", "iska follow-up band kar do", "isse contact mat karo". Set "do_not_contact" to true for stopping, or false if the owner explicitly wants to resume contacting them again.
+- "admin_update": the owner wants to ADD or CHANGE a specific field on a specific Product, Category, or Sub-Category — e.g. "XYZ pump product mein part number ABC123 add karo", "wheel bearing ka category change kar do", "make Bosch kar do us product ka". Set "admin_table" to which table this is about, "admin_record_identifier" to the name/description the owner used to refer to the specific record (e.g. the product name), "admin_field" to the exact column being changed (map spoken words to the closest of: product_name, part_number, category, sub_category, make, description, status, name), and "admin_value" to the new value they want set.
+- "admin_query": the owner is asking a QUESTION about Products/Categories/Sub-Categories data — e.g. "kaunse products mein part number missing hai", "kitne products inactive hain", "XYZ category mein kitne products hain". Set "admin_table" to which table this is about, and put the actual question in "notes". Do NOT set "admin_field"/"admin_value" for a query — those are only for "admin_update".
 - "discuss": ANY question, investigation, confusion, or open-ended request about a customer/enquiry/quotation that is not one of the above actions — e.g. "kya reply aaya", "customer keh raha hai mail nahi mila, check karo kya hua", "poori details batao", "iska kya status hai". This is a broad catch-all for conversation — prefer this over "unclear" whenever the owner is asking about or discussing something specific.
 - "unclear": ONLY use this if the input is truly unintelligible or empty of any real meaning (e.g. background noise transcribed as random words).
 - "enquiry_number": if the owner refers to an enquiry by its number (e.g. "enquiry number 32", "32 wali enquiry", "number 5 ko"), extract that number here. Otherwise null.
@@ -451,6 +457,77 @@ Write a short, professional, polite email BODY (2-5 sentences) conveying this to
     });
   } catch (error) {
     console.error('COMPOSE MESSAGE ERROR:', error);
+
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// ---------- Text-to-Speech (cloud voice — same everywhere, not device-dependent) ----------
+// Uses Azure Speech Services' neural voices so Apex always sounds like the
+// same natural female voice, regardless of which browser/OS is playing it —
+// unlike the browser's built-in speechSynthesis, whose voice depends entirely
+// on what happens to be installed on that specific device.
+function escapeXml(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
+}
+
+router.post('/tts', async (req, res) => {
+  try {
+    const text = String(req.body?.text || '').trim();
+    const lang = String(req.body?.lang || 'en-IN');
+
+    if (!text) {
+      return res.status(400).json({ success: false, error: 'Text is required' });
+    }
+
+    if (!process.env.AZURE_SPEECH_KEY || !process.env.AZURE_SPEECH_REGION) {
+      return res.status(503).json({
+        success: false,
+        error: 'Azure Speech is not configured on the server yet.',
+      });
+    }
+
+    const voiceName = lang.toLowerCase().startsWith('hi') ? 'hi-IN-SwaraNeural' : 'en-IN-NeerjaNeural';
+
+    const ssml = `<speak version='1.0' xml:lang='${lang}'><voice xml:lang='${lang}' xml:gender='Female' name='${voiceName}'>${escapeXml(
+      text
+    )}</voice></speak>`;
+
+    const azureResponse = await fetch(
+      `https://${process.env.AZURE_SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/v1`,
+      {
+        method: 'POST',
+        headers: {
+          'Ocp-Apim-Subscription-Key': process.env.AZURE_SPEECH_KEY,
+          'Content-Type': 'application/ssml+xml',
+          'X-Microsoft-OutputFormat': 'audio-16khz-64kbitrate-mono-mp3',
+          'User-Agent': 'ApexAIEmployee',
+        },
+        body: ssml,
+      }
+    );
+
+    if (!azureResponse.ok) {
+      const errorText = await azureResponse.text();
+      throw new Error(`Azure TTS request failed (${azureResponse.status}): ${errorText}`);
+    }
+
+    const audioBuffer = Buffer.from(await azureResponse.arrayBuffer());
+
+    return res.json({
+      success: true,
+      audio: audioBuffer.toString('base64'),
+    });
+  } catch (error) {
+    console.error('TTS ERROR:', error);
 
     return res.status(500).json({
       success: false,

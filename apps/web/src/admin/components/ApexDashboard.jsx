@@ -671,7 +671,15 @@ export default function ApexDashboard() {
       let interimText = '';
       let finalText = '';
 
-      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+      // Deliberately ignore event.resultIndex and always read from the very
+      // start of event.results. On some mobile devices, resultIndex doesn't
+      // advance correctly AND the engine can retroactively revise earlier
+      // words as more speech arrives — so trying to "diff" against what we
+      // saw last time is unreliable. Instead, always treat event.results as
+      // the single source of truth for everything recognized in this
+      // session so far, and lean entirely on collapseRepeatedPhrases to
+      // clean up any growth/repetition it produces.
+      for (let i = 0; i < event.results.length; i += 1) {
         const piece = event.results[i][0].transcript;
 
         if (event.results[i].isFinal) {
@@ -682,34 +690,7 @@ export default function ApexDashboard() {
       }
 
       if (finalText.trim()) {
-        const currentFinal = finalText.trim();
-        const lastSeen = lastFinalTextSeenRef.current;
-
-        let newPortion;
-
-        if (lastSeen && currentFinal.toLowerCase().startsWith(lastSeen.toLowerCase())) {
-          // This browser is re-sending the WHOLE utterance from the start
-          // each time (resultIndex isn't advancing correctly) — only the
-          // suffix beyond what we already saw is genuinely new.
-          newPortion = currentFinal.slice(lastSeen.length).trim();
-        } else if (lastSeen && lastSeen.toLowerCase().startsWith(currentFinal.toLowerCase())) {
-          // The new chunk is a subset of what we've already fully seen —
-          // nothing new to add.
-          newPortion = '';
-        } else {
-          // A genuinely new/separate final segment (normal, incremental
-          // behaviour).
-          newPortion = currentFinal;
-        }
-
-        lastFinalTextSeenRef.current = currentFinal;
-
-        if (newPortion) {
-          const cleanedFinalText = collapseRepeatedPhrases(newPortion);
-          commandBufferRef.current = collapseRepeatedPhrases(
-            `${commandBufferRef.current} ${cleanedFinalText}`.trim()
-          );
-        }
+        commandBufferRef.current = collapseRepeatedPhrases(finalText.trim());
       }
 
       setLiveTranscript(`${commandBufferRef.current} ${interimText}`.trim());
@@ -1758,7 +1739,7 @@ export default function ApexDashboard() {
               body: JSON.stringify({
                 action: 'updateEnquiry',
                 id: matchedEnquiry.id,
-                status: 'Quoted',
+                status: 'Quotation Sent',
                 assignedTo: matchedEnquiry.assignedTo || '',
                 remarks: matchedEnquiry.remarks || '',
               }),
@@ -2292,7 +2273,81 @@ export default function ApexDashboard() {
     return target;
   }, []);
 
-  // Applies a rate change or discount to an already-identified target quotation
+  // ---------- Generalized Admin Panel data actions (Products / Categories / Sub-Categories) ----------
+  // Maps a spoken table reference to the real Supabase table + which field
+  // acts as its "name" for fuzzy matching (e.g. "the pump product" -> find by
+  // product_name).
+  const ADMIN_TABLE_CONFIG = {
+    products: { table: 'products', nameField: 'product_name', label: 'Product' },
+    categories: { table: 'categories', nameField: 'name', label: 'Category' },
+    sub_categories: { table: 'sub_categories', nameField: 'name', label: 'Sub Category' },
+  };
+
+  // Finds the specific record the owner meant, by fuzzy-matching their
+  // spoken identifier against the table's name/part-number fields.
+  const findAdminRecord = useCallback(async (adminTable, identifier) => {
+    const config = ADMIN_TABLE_CONFIG[adminTable];
+    if (!config || !identifier) return null;
+
+    const { data, error } = await supabase.from(config.table).select('*');
+    if (error) throw new Error(error.message);
+
+    const needle = identifier.toLowerCase().trim();
+
+    const matches = (data || []).filter((row) => {
+      const nameValue = (row[config.nameField] || '').toLowerCase();
+      const partNumberValue = (row.part_number || '').toLowerCase();
+      return (
+        (nameValue && (nameValue.includes(needle) || needle.includes(nameValue))) ||
+        (partNumberValue && (partNumberValue.includes(needle) || needle.includes(partNumberValue)))
+      );
+    });
+
+    return matches[0] || null;
+  }, []);
+
+  const updateAdminRecord = useCallback(async (adminTable, recordId, field, value) => {
+    const config = ADMIN_TABLE_CONFIG[adminTable];
+    if (!config) throw new Error('Unknown table');
+
+    const { error } = await supabase
+      .from(config.table)
+      .update({ [field]: value })
+      .eq('id', recordId);
+
+    if (error) throw new Error(error.message);
+  }, []);
+
+  // Builds a plain-text snapshot of a table's data for Apex to reason over
+  // when answering an open question (e.g. "which products are missing a
+  // part number").
+  const buildAdminQueryContext = useCallback(async (adminTable) => {
+    const config = ADMIN_TABLE_CONFIG[adminTable];
+    if (!config) return '';
+
+    const { data, error } = await supabase.from(config.table).select('*').limit(300);
+    if (error) throw new Error(error.message);
+
+    const rows = data || [];
+
+    if (adminTable === 'products') {
+      const lines = rows.map(
+        (p) =>
+          `- ${p.product_name || 'Unnamed'}: part_number="${p.part_number || '(missing)'}", category="${
+            p.category || '(missing)'
+          }", sub_category="${p.sub_category || '(missing)'}", make="${p.make || '(missing)'}", status="${
+            p.status || 'Active'
+          }"`
+      );
+
+      return `Products table (${rows.length} total):\n${lines.join('\n') || 'No products found.'}`;
+    }
+
+    const lines = rows.map((r) => `- ${r.name || 'Unnamed'}${r.category ? ` (category: ${r.category})` : ''}`);
+    return `${config.label}s table (${rows.length} total):\n${lines.join('\n') || 'No records found.'}`;
+  }, []);
+
+
   // and resends it. Shared by the explicit "revise_quotation" intent and by the
   // safety-net redirect from "create_quotation" when a quotation already exists.
   const handleRevisionForTarget = useCallback(
@@ -3039,6 +3094,96 @@ export default function ApexDashboard() {
               updateVoiceLogResponse(commandId, `Error: ${prefError.message}`, 'error');
             }
           }
+        } else if (parsed.intent === 'admin_update') {
+          if (!parsed.admin_table || !parsed.admin_record_identifier || !parsed.admin_field) {
+            const answer = isHindi
+              ? 'Mujhe samajh nahi aaya kaunsa record aur kaunsa field update karna hai. Naam aur field dono boliye.'
+              : "I'm not sure which record and which field to update. Please mention both the name and the field.";
+
+            speak(answer, speakLang);
+            updateVoiceLogResponse(commandId, answer, 'unclear');
+          } else {
+            try {
+              const record = await findAdminRecord(parsed.admin_table, parsed.admin_record_identifier);
+
+              if (!record) {
+                const answer = isHindi
+                  ? `Mujhe "${parsed.admin_record_identifier}" naam ka koi record nahi mila ${ADMIN_TABLE_CONFIG[parsed.admin_table]?.label || 'is table'} mein.`
+                  : `I couldn't find anything matching "${parsed.admin_record_identifier}" in ${
+                      ADMIN_TABLE_CONFIG[parsed.admin_table]?.label || 'that table'
+                    }.`;
+
+                speak(answer, speakLang);
+                updateVoiceLogResponse(commandId, answer, 'unclear');
+              } else {
+                const recordLabel =
+                  record.product_name || record.name || parsed.admin_record_identifier;
+
+                const workingText = isHindi
+                  ? `${recordLabel} ka ${parsed.admin_field} update kar raha hoon.`
+                  : `Updating ${parsed.admin_field} for ${recordLabel}.`;
+
+                speak(workingText, speakLang);
+                updateVoiceLogResponse(commandId, workingText, 'working');
+
+                await updateAdminRecord(parsed.admin_table, record.id, parsed.admin_field, parsed.admin_value);
+
+                const doneText = isHindi
+                  ? `Ho gaya. ${recordLabel} ka ${parsed.admin_field} ab "${parsed.admin_value}" hai.`
+                  : `Done. ${recordLabel}'s ${parsed.admin_field} is now "${parsed.admin_value}".`;
+
+                speak(doneText, speakLang);
+                updateVoiceLogResponse(commandId, doneText, 'done');
+              }
+            } catch (adminError) {
+              console.error('Apex admin update error:', adminError);
+
+              const failText = isHindi
+                ? 'Maaf kijiye, update karne mein problem aa gayi.'
+                : 'Sorry, there was a problem making that update.';
+
+              speak(failText, speakLang);
+              updateVoiceLogResponse(commandId, `Error: ${adminError.message}`, 'error');
+            }
+          }
+        } else if (parsed.intent === 'admin_query') {
+          if (!parsed.admin_table) {
+            const answer = isHindi
+              ? 'Mujhe samajh nahi aaya aap kis data ki baat kar rahe hain — Products, Categories, ya Sub-Categories?'
+              : "I'm not sure which data you mean — Products, Categories, or Sub-Categories?";
+
+            speak(answer, speakLang);
+            updateVoiceLogResponse(commandId, answer, 'unclear');
+          } else {
+            try {
+              const contextText = await buildAdminQueryContext(parsed.admin_table);
+
+              const discussResponse = await fetch(`${API_URL}/ai/discuss`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transcript: text, historyText: '', contextText }),
+              });
+
+              const discussResult = await discussResponse.json();
+
+              if (!discussResponse.ok || !discussResult.success) {
+                throw new Error(discussResult.error || 'Could not think through an answer');
+              }
+
+              const answer =
+                discussResult.answer ||
+                (isHindi ? 'Maaf kijiye, jawab nahi mil paya.' : 'Sorry, I could not come up with an answer.');
+
+              speak(answer, speakLang);
+              updateVoiceLogResponse(commandId, answer, 'answered');
+            } catch (adminQueryError) {
+              console.error('Apex admin query error:', adminQueryError);
+
+              const errText = isHindi ? 'Kuch galti ho gayi.' : 'Something went wrong.';
+              speak(errText, speakLang);
+              updateVoiceLogResponse(commandId, `Error: ${adminQueryError.message}`, 'error');
+            }
+          }
         } else if (parsed.intent === 'discuss') {
           let target = resolveTargetQuotation(parsed);
           let matchedEnquiry = null;
@@ -3222,6 +3367,9 @@ ${recentEnquiriesText || 'No enquiries on record at all right now.'}`;
       deleteAllEnquiriesAndQuotations,
       fetchQuotations,
       fetchQuotationHistory,
+      findAdminRecord,
+      updateAdminRecord,
+      buildAdminQueryContext,
       speak,
       updateVoiceLogResponse,
       formatRelativeTime,

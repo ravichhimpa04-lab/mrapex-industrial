@@ -57,6 +57,7 @@ function QuotationsPage() {
               <thead className="bg-slate-900 text-white">
                 <tr>
                   <th className="p-3 text-left">Quotation No</th>
+                  <th className="p-3 text-left">Enquiry #</th>
                   <th className="p-3 text-left">Customer</th>
                   <th className="p-3 text-left">Company</th>
                   <th className="p-3 text-left">Date</th>
@@ -70,6 +71,8 @@ function QuotationsPage() {
                 {quotations.map((q) => (
                   <tr key={q.id} className="border-b hover:bg-slate-50">
                     <td className="p-3 font-semibold">{q.quotation_no}</td>
+
+                    <td className="p-3 text-slate-600">{q.enquiry_no ? `#${q.enquiry_no}` : '-'}</td>
 
                     <td className="p-3">{q.customer_name}</td>
 

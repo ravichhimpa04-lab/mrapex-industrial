@@ -1297,6 +1297,7 @@ const payload = {
                   <table className="w-full text-sm">
                     <thead className="bg-slate-900 text-white">
                       <tr>
+                        <th className="p-3 text-left">No.</th>
                         <th className="p-3 text-left">Date</th>
                         <th className="p-3 text-left">Customer</th>
                         <th className="p-3 text-left">Contact</th>
@@ -1312,6 +1313,8 @@ const payload = {
                     <tbody>
                       {filteredEnquiries.map((item, index) => (
                         <tr key={item.id || index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                          <td className="p-3 border-t font-semibold text-slate-700">#{item.id}</td>
+
                           <td className="p-3 border-t min-w-[150px]">{item.dateTime ? new Date(item.dateTime).toLocaleString() : ''}</td>
 
                           <td className="p-3 border-t min-w-[220px]">
