@@ -481,6 +481,12 @@ export default function ApexDashboard() {
   const recognitionRef = useRef(null);
   const isListeningRef = useRef(false);
   const commandBufferRef = useRef('');
+  // Some mobile speech engines re-fire onresult with the ENTIRE utterance
+  // re-included from the start each time (instead of just the new part),
+  // because event.resultIndex doesn't advance correctly on that device. This
+  // tracks the last final-text chunk we saw, so we can detect that pattern
+  // and only append the genuinely NEW suffix instead of the whole thing again.
+  const lastFinalTextSeenRef = useRef('');
   const silenceTimerRef = useRef(null);
   const processApexCommandRef = useRef(() => {}); // forward-ref, filled in below once processApexCommand is defined
 
@@ -518,6 +524,7 @@ export default function ApexDashboard() {
   const finalizeCommand = useCallback(() => {
     const text = commandBufferRef.current.trim();
     commandBufferRef.current = '';
+    lastFinalTextSeenRef.current = '';
     setLiveTranscript('');
 
     if (text && isLikelyEcho(text)) {
@@ -566,6 +573,7 @@ export default function ApexDashboard() {
 
     setVoiceError('');
     commandBufferRef.current = '';
+    lastFinalTextSeenRef.current = '';
     setLiveTranscript('');
     pendingClarificationRef.current = null;
 
@@ -674,10 +682,34 @@ export default function ApexDashboard() {
       }
 
       if (finalText.trim()) {
-        const cleanedFinalText = collapseRepeatedPhrases(finalText.trim());
-        commandBufferRef.current = collapseRepeatedPhrases(
-          `${commandBufferRef.current} ${cleanedFinalText}`.trim()
-        );
+        const currentFinal = finalText.trim();
+        const lastSeen = lastFinalTextSeenRef.current;
+
+        let newPortion;
+
+        if (lastSeen && currentFinal.toLowerCase().startsWith(lastSeen.toLowerCase())) {
+          // This browser is re-sending the WHOLE utterance from the start
+          // each time (resultIndex isn't advancing correctly) — only the
+          // suffix beyond what we already saw is genuinely new.
+          newPortion = currentFinal.slice(lastSeen.length).trim();
+        } else if (lastSeen && lastSeen.toLowerCase().startsWith(currentFinal.toLowerCase())) {
+          // The new chunk is a subset of what we've already fully seen —
+          // nothing new to add.
+          newPortion = '';
+        } else {
+          // A genuinely new/separate final segment (normal, incremental
+          // behaviour).
+          newPortion = currentFinal;
+        }
+
+        lastFinalTextSeenRef.current = currentFinal;
+
+        if (newPortion) {
+          const cleanedFinalText = collapseRepeatedPhrases(newPortion);
+          commandBufferRef.current = collapseRepeatedPhrases(
+            `${commandBufferRef.current} ${cleanedFinalText}`.trim()
+          );
+        }
       }
 
       setLiveTranscript(`${commandBufferRef.current} ${interimText}`.trim());
