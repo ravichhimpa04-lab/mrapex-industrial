@@ -583,15 +583,49 @@ export default function ApexDashboard() {
     // capturing. Everything spoken while listening is added to the current command,
     // and after ~4s of silence it is automatically saved to the Voice Command Log.
     // Some mobile speech engines (notably Android Chrome) occasionally
-    // re-report the exact same final word several times in a row due to an
-    // internal recognition glitch (e.g. "tum tum tum tum tum"). Collapse any
-    // run of 3+ identical consecutive words down to a single occurrence —
-    // this still allows genuine intentional doubling in speech (e.g. "bahut
-    // bahut", "dheere dheere"), since only 3-or-more-in-a-row gets trimmed.
-    const collapseRepeatedWords = (text) => {
-      const words = text.split(/\s+/).filter(Boolean);
+    // re-report the same chunk of speech multiple times in a row due to an
+    // internal recognition glitch — sometimes just one word ("tum tum tum
+    // tum"), sometimes a whole phrase ("quotation bhejo quotation bhejo
+    // quotation bhejo"). This collapses those cases while still allowing
+    // genuine Hindi emphasis doubling of a SINGLE word (e.g. "bahut bahut",
+    // "dheere dheere") — only 3-or-more copies of a single word gets
+    // trimmed, but any repeated multi-word PHRASE collapses immediately,
+    // since people don't naturally repeat a whole phrase back-to-back.
+    const collapseRepeatedPhrases = (text) => {
+      let words = text.split(/\s+/).filter(Boolean);
+      let changed = true;
+
+      // Phase 1: collapse phrase-level repeats (2+ words), longest first.
+      while (changed) {
+        changed = false;
+
+        for (let len = Math.floor(words.length / 2); len >= 2 && !changed; len -= 1) {
+          for (let start = 0; start + 2 * len <= words.length; start += 1) {
+            const first = words
+              .slice(start, start + len)
+              .join(' ')
+              .toLowerCase();
+            const second = words
+              .slice(start + len, start + 2 * len)
+              .join(' ')
+              .toLowerCase();
+
+            if (first === second) {
+              words = [...words.slice(0, start + len), ...words.slice(start + 2 * len)];
+              changed = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // Phase 2: collapse single-word repeats. Exactly 2 in a row is kept
+      // as-is (genuine Hindi emphasis like "bahut bahut"), but a 3rd
+      // occurrence confirms this is the glitch (people don't naturally say
+      // the same word 3+ times), so it retroactively collapses all the way
+      // down to just 1 copy.
       const collapsed = [];
-      let repeatCount = 0;
+      let repeatCount = 1;
 
       for (const word of words) {
         const normalized = word.toLowerCase();
@@ -600,11 +634,16 @@ export default function ApexDashboard() {
 
         if (normalized === lastNormalized) {
           repeatCount += 1;
-          if (repeatCount >= 2) {
+
+          if (repeatCount === 3) {
+            collapsed.pop();
+          }
+
+          if (repeatCount >= 3) {
             continue;
           }
         } else {
-          repeatCount = 0;
+          repeatCount = 1;
         }
 
         collapsed.push(word);
@@ -635,8 +674,8 @@ export default function ApexDashboard() {
       }
 
       if (finalText.trim()) {
-        const cleanedFinalText = collapseRepeatedWords(finalText.trim());
-        commandBufferRef.current = collapseRepeatedWords(
+        const cleanedFinalText = collapseRepeatedPhrases(finalText.trim());
+        commandBufferRef.current = collapseRepeatedPhrases(
           `${commandBufferRef.current} ${cleanedFinalText}`.trim()
         );
       }
@@ -1668,6 +1707,34 @@ export default function ApexDashboard() {
         await logEvent(quotation.id, 'sent', `Quotation ${quotationNo} emailed to ${data.email}.`);
 
         recentSendTimestampsRef.current.set(quotation.id, Date.now());
+      }
+
+      // Reflect that this enquiry has now been quoted, so it doesn't sit
+      // showing "New" forever in the Enquiries CRM even after action has
+      // been taken on it.
+      if (data.enquiry_no) {
+        try {
+          const matchedEnquiry = enquiriesRef.current.find(
+            (item) => Number(item.id) === Number(data.enquiry_no)
+          );
+
+          if (matchedEnquiry) {
+            await fetch(ENQUIRY_API_URL, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({
+                action: 'updateEnquiry',
+                id: matchedEnquiry.id,
+                status: 'Quoted',
+                assignedTo: matchedEnquiry.assignedTo || '',
+                remarks: matchedEnquiry.remarks || '',
+              }),
+            });
+          }
+        } catch (enquiryUpdateError) {
+          console.error('Apex create quotation - enquiry status update error:', enquiryUpdateError);
+        }
       }
 
       return quotation;
@@ -3026,12 +3093,36 @@ export default function ApexDashboard() {
                 const repliesNeedingAttention = allQuotations.filter(
                   (q) => q.status === 'Sent' && q.customer_replied
                 ).length;
+                const wonCount = allQuotations.filter((q) => q.status === 'Won').length;
+
+                // "Sent" is a lifetime fact, not a current-status bucket — a
+                // quotation that was sent and later replied-to or Won was
+                // STILL sent. Compute this separately so aggregate questions
+                // like "how many have we sent so far" are answered correctly
+                // regardless of what happened to it afterwards.
+                const everSentQuotations = allQuotations.filter(
+                  (q) => q.status === 'Sent' || q.status === 'Won'
+                );
+
+                const sentRecipientsText = everSentQuotations
+                  .map(
+                    (q) =>
+                      `${q.quotation_no} — ${q.customer_name || q.company_name || 'unknown'}${
+                        q.status === 'Won' ? ' (Won)' : ''
+                      }`
+                  )
+                  .join('\n');
 
                 contextText = `Overall business snapshot right now:
 - Total enquiries on record: ${allEnquiries.length}
-- Quotations still in Draft (not sent yet): ${pendingQuotations}
-- Quotations sent and awaiting a customer reply: ${sentAwaitingReply}
-- Quotations where the customer has replied: ${repliesNeedingAttention}
+- Total quotations EVER sent (lifetime count, regardless of current status): ${everSentQuotations.length}
+- Of those, still Sent and awaiting a customer reply: ${sentAwaitingReply}
+- Of those, customer has replied: ${repliesNeedingAttention}
+- Of those, deals Won: ${wonCount}
+- Quotations still in Draft (never sent yet): ${pendingQuotations}
+
+List of every quotation ever sent, and who it went to:
+${sentRecipientsText || 'None sent yet.'}
 
 Most recent enquiries (newest first):
 ${recentEnquiriesText || 'No enquiries on record at all right now.'}`;
