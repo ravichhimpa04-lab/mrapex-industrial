@@ -582,6 +582,37 @@ export default function ApexDashboard() {
     // No wake-word needed: clicking "Talk to Apex" is itself the signal to start
     // capturing. Everything spoken while listening is added to the current command,
     // and after ~4s of silence it is automatically saved to the Voice Command Log.
+    // Some mobile speech engines (notably Android Chrome) occasionally
+    // re-report the exact same final word several times in a row due to an
+    // internal recognition glitch (e.g. "tum tum tum tum tum"). Collapse any
+    // run of 3+ identical consecutive words down to a single occurrence —
+    // this still allows genuine intentional doubling in speech (e.g. "bahut
+    // bahut", "dheere dheere"), since only 3-or-more-in-a-row gets trimmed.
+    const collapseRepeatedWords = (text) => {
+      const words = text.split(/\s+/).filter(Boolean);
+      const collapsed = [];
+      let repeatCount = 0;
+
+      for (const word of words) {
+        const normalized = word.toLowerCase();
+        const lastNormalized =
+          collapsed.length > 0 ? collapsed[collapsed.length - 1].toLowerCase() : null;
+
+        if (normalized === lastNormalized) {
+          repeatCount += 1;
+          if (repeatCount >= 2) {
+            continue;
+          }
+        } else {
+          repeatCount = 0;
+        }
+
+        collapsed.push(word);
+      }
+
+      return collapsed.join(' ');
+    };
+
     recognition.onresult = (event) => {
       // Ignore anything picked up while Apex itself is talking — otherwise the
       // mic hears Apex's own voice through the speakers and treats it as a new
@@ -604,7 +635,10 @@ export default function ApexDashboard() {
       }
 
       if (finalText.trim()) {
-        commandBufferRef.current = `${commandBufferRef.current} ${finalText}`.trim();
+        const cleanedFinalText = collapseRepeatedWords(finalText.trim());
+        commandBufferRef.current = collapseRepeatedWords(
+          `${commandBufferRef.current} ${cleanedFinalText}`.trim()
+        );
       }
 
       setLiveTranscript(`${commandBufferRef.current} ${interimText}`.trim());
