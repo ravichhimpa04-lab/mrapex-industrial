@@ -48,6 +48,43 @@ const makeSlug = (text = '') =>
 
 const ALL_PRODUCTS_VALUE = '__all__';
 
+// Small edit-distance function for typo-tolerant search matching — no
+// external library needed, and fast enough for a few hundred products.
+function levenshteinDistance(a, b) {
+  const matrix = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+
+  for (let i = 0; i <= a.length; i += 1) matrix[i][0] = i;
+  for (let j = 0; j <= b.length; j += 1) matrix[0][j] = j;
+
+  for (let i = 1; i <= a.length; i += 1) {
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+
+  return matrix[a.length][b.length];
+}
+
+// Checks if a search word matches somewhere in the given text — either as a
+// direct substring, or as a "close enough" (typo-tolerant) match to one of
+// the words in the text.
+function wordMatchesText(searchWord, text) {
+  if (!searchWord) return true;
+  if (text.includes(searchWord)) return true;
+
+  const maxDistance = searchWord.length <= 4 ? 1 : 2;
+
+  return text.split(/\s+/).some((textWord) => {
+    if (Math.abs(textWord.length - searchWord.length) > maxDistance + 1) return false;
+    return levenshteinDistance(textWord, searchWord) <= maxDistance;
+  });
+}
+
 const fixedCategories = [
   'Volvo Parts',
   'Pumps',
@@ -314,10 +351,10 @@ function ProductsPage() {
     }
 
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
+      const queryWords = searchQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
 
-      list = list.filter((item) =>
-        [
+      list = list.filter((item) => {
+        const text = [
           item.name,
           item.partNo,
           item.make,
@@ -327,9 +364,10 @@ function ProductsPage() {
         ]
           .filter(Boolean)
           .join(' ')
-          .toLowerCase()
-          .includes(query)
-      );
+          .toLowerCase();
+
+        return queryWords.every((word) => wordMatchesText(word, text));
+      });
     }
 
     return list;
