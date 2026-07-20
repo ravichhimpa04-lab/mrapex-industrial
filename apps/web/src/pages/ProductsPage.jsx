@@ -583,7 +583,10 @@ function ProductsPage() {
 
         <section id="products-list" className="section-padding bg-muted/50">
           <div className="container-custom">
-            {(currentCategory || searchQuery || selectedMake) && (
+            {(currentCategory ||
+              searchQuery ||
+              selectedMake ||
+              selectedCategory === ALL_PRODUCTS_VALUE) && (
             <div className="mb-8 rounded-3xl border bg-white p-5 shadow-sm">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
