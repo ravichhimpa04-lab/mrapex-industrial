@@ -8,9 +8,13 @@ import {
   BadgeCheck,
   Boxes,
   Building2,
+  CircleDot,
   Cog,
+  Cylinder,
   Droplets,
+  Filter,
   Gauge,
+  Hammer,
   MessageCircle,
   Package,
   Search,
@@ -21,6 +25,7 @@ import {
   Truck,
   Wrench,
   X,
+  Zap,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -49,8 +54,25 @@ const fixedCategories = [
   'Hose Pipes',
   'Couplings',
   'MSV Spares',
+  'Bearings',
+  'Seals & Sealing Products',
+  'Power Transmission Components',
+  'Workshop Tools & Service Equipment',
+  'Hydraulic Pumps & Motors',
+  'Hydraulic Cylinders',
+  'Filters & Filtration Systems',
+  'Custom Engineering Parts',
+  'Electrical Components',
   'Other Machinery Items',
 ];
+
+// Smaller category names that should appear as part of "Other Machinery
+// Items" (their own sub_category values are preserved, so they're still
+// filterable within that section) rather than as their own top-level card.
+const categoryAliases = {
+  Fasteners: 'Other Machinery Items',
+  'Pneumatic Components': 'Other Machinery Items',
+};
 
 const categoryMeta = {
   'Volvo Parts': {
@@ -88,10 +110,55 @@ const categoryMeta = {
     description:
       'MSV spare parts, seal kits, repair kits and machinery replacement items.',
   },
+  Bearings: {
+    icon: CircleDot,
+    description:
+      'Ball bearings, roller bearings, thrust bearings, mounted bearings and bearing accessories.',
+  },
+  'Seals & Sealing Products': {
+    icon: ShieldCheck,
+    description:
+      'O-rings, hydraulic seals, mechanical seals, gaskets and sealing washers.',
+  },
+  'Power Transmission Components': {
+    icon: Boxes,
+    description:
+      'Belts, chains, pulleys, sprockets, shaft couplings and drive components.',
+  },
+  'Workshop Tools & Service Equipment': {
+    icon: Hammer,
+    description:
+      'Hand tools, hose assembly tools, hydraulic service tools and precision measuring equipment.',
+  },
+  'Hydraulic Pumps & Motors': {
+    icon: Droplets,
+    description:
+      'Hydraulic pumps, hydraulic motors, gear pump and piston pump components.',
+  },
+  'Hydraulic Cylinders': {
+    icon: Cylinder,
+    description:
+      'Hydraulic cylinder assemblies, cylinder components, rod ends and mounting parts.',
+  },
+  'Filters & Filtration Systems': {
+    icon: Filter,
+    description:
+      'Hydraulic filters, fuel filters, air filters and industrial filtration components.',
+  },
+  'Custom Engineering Parts': {
+    icon: SlidersHorizontal,
+    description:
+      'Precision machined components, custom shafts, bushes and engineered wear parts.',
+  },
+  'Electrical Components': {
+    icon: Zap,
+    description:
+      'Sensors, connectors, switches, wiring and other electrical machinery components.',
+  },
   'Other Machinery Items': {
     icon: Package,
     description:
-      'Bearings, fasteners, filters, sensors and other MRO machinery supplies.',
+      'Fasteners, pneumatic components and other MRO machinery supplies.',
   },
 };
 
@@ -163,13 +230,23 @@ function ProductsPage() {
 
     products.forEach((product) => {
       if (!product.category) return;
-      const cleanCategory = product.category.trim();
+      const cleanCategory = categoryAliases[product.category.trim()] || product.category.trim();
 
       if (!grouped[cleanCategory]) grouped[cleanCategory] = [];
       grouped[cleanCategory].push(product);
     });
 
-    return fixedCategories.map((name) => ({
+    // Always show the official fixed categories (even if currently empty),
+    // PLUS any other category name that actually has active products — so a
+    // product never silently disappears just because its category text
+    // doesn't exactly match the fixed list (e.g. from a bulk import that
+    // used a slightly different category name).
+    const extraCategoryNames = Object.keys(grouped).filter(
+      (name) => !fixedCategories.includes(name)
+    );
+    const allCategoryNames = [...fixedCategories, ...extraCategoryNames];
+
+    return allCategoryNames.map((name) => ({
       name,
       icon: categoryMeta[name]?.icon || Package,
       description:
