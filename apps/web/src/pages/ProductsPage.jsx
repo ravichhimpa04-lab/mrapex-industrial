@@ -46,6 +46,8 @@ const makeSlug = (text = '') =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
+const ALL_PRODUCTS_VALUE = '__all__';
+
 const fixedCategories = [
   'Volvo Parts',
   'Pumps',
@@ -264,8 +266,8 @@ function ProductsPage() {
     const subCategoryFromUrl = params.get('subCategory');
 
     if (
-      categoryFromUrl &&
-      categories.some((cat) => cat.name === categoryFromUrl)
+      categoryFromUrl === ALL_PRODUCTS_VALUE ||
+      (categoryFromUrl && categories.some((cat) => cat.name === categoryFromUrl))
     ) {
       setSelectedCategory(categoryFromUrl);
       if (subCategoryFromUrl) setSelectedSubCategory(subCategoryFromUrl);
@@ -648,7 +650,7 @@ function ProductsPage() {
               <div className="rounded-3xl border bg-white p-10 text-center text-muted-foreground">
                 Loading products...
               </div>
-            ) : !currentCategory && !searchQuery && !selectedMake ? (
+            ) : !currentCategory && !searchQuery && !selectedMake && selectedCategory !== ALL_PRODUCTS_VALUE ? (
               <div>
                 <div className="flex items-end justify-between gap-4 mb-6">
                   <div>
@@ -662,6 +664,38 @@ function ProductsPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                  <motion.button
+                    type="button"
+                    onClick={() => changeCategory(ALL_PRODUCTS_VALUE)}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.35 }}
+                    className="group bg-primary/5 rounded-3xl p-6 shadow-sm border-2 border-primary/20 text-left hover:shadow-xl hover:-translate-y-1 transition-all"
+                  >
+                    <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-5 group-hover:bg-primary transition-colors">
+                      <Boxes className="w-7 h-7 text-primary group-hover:text-white transition-colors" />
+                    </div>
+
+                    <h2 className="text-xl font-extrabold mb-3 text-foreground">
+                      All Products
+                    </h2>
+
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                      Browse every product we supply, across all categories, in one list.
+                    </p>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-muted-foreground">
+                        {products.length} products
+                      </span>
+
+                      <span className="text-primary font-bold text-sm">
+                        View →
+                      </span>
+                    </div>
+                  </motion.button>
+
                   {categories.map((category, index) => {
                     const Icon = category.icon;
 
@@ -725,7 +759,7 @@ function ProductsPage() {
                     </p>
                   </div>
 
-                  {currentCategory && (
+                  {(currentCategory || selectedCategory === ALL_PRODUCTS_VALUE) && (
                     <Button
                       variant="outline"
                       onClick={clearFilters}
