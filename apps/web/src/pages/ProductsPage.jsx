@@ -838,7 +838,7 @@ function ProductsPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                       {displayedProducts.map((item, index) => {
                         const message = getWhatsappMessage(
                           item,
@@ -857,7 +857,7 @@ function ProductsPage() {
                             }}
                             className="bg-white rounded-3xl overflow-hidden shadow-sm border flex flex-col h-full hover:shadow-xl hover:-translate-y-1 transition-all"
                           >
-                            <div className="h-56 bg-gradient-to-br from-white to-slate-50 border-b overflow-hidden flex items-center justify-center">
+                            <div className="h-36 bg-gradient-to-br from-white to-slate-50 border-b overflow-hidden flex items-center justify-center">
                               <img
                                 src={
                                   item.image ||
@@ -870,7 +870,7 @@ function ProductsPage() {
                                 sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                 width="500"
                                 height="350"
-                                className="w-full h-full object-contain p-4"
+                                className="w-full h-full object-contain p-6"
                                 onError={(e) => {
                                   e.currentTarget.src =
                                     'https://via.placeholder.com/500x350?text=Product+Image';
