@@ -74,6 +74,8 @@ function AdminDashboard() {
   const [msg, setMsg] = useState('');
   const [uploading, setUploading] = useState(false);
   const [excelUploading, setExcelUploading] = useState(false);
+  const [bulkImageUploading, setBulkImageUploading] = useState(false);
+  const [bulkImageResult, setBulkImageResult] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
 
@@ -496,8 +498,83 @@ setCheckingAccess(false);
     }
   };
 
+  // Bulk Image Upload — matches each selected image file to a product by
+  // EXACT slug match only (filename without extension must equal the
+  // product's slug: makeSlug(`${product_name} ${part_number}`), the same
+  // slug already used for the product's public URL). No fuzzy/"closest
+  // name" matching is ever used here on purpose — a file that doesn't
+  // match anything is skipped and reported, never guessed onto the wrong
+  // product.
+  const handleBulkImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    setBulkImageUploading(true);
+    setBulkImageResult(null);
+    setMsg('');
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    // Build slug -> product lookup from the currently loaded products list.
+    const slugToProduct = new Map();
+    products.forEach((p) => {
+      const slug = p.slug || makeSlug(`${p.product_name || ''} ${p.part_number || ''}`);
+      slugToProduct.set(slug, p);
+    });
+
+    const matched = [];
+    const unmatched = [];
+    const failed = [];
+
+    for (const file of files) {
+      const fileSlug = file.name.replace(/\.[^/.]+$/, '').toLowerCase();
+      const product = slugToProduct.get(fileSlug);
+
+      if (!product) {
+        unmatched.push(file.name);
+        continue;
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await fetch(`${API_URL}/upload-r2`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session?.access_token}` },
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Upload failed');
+        }
+
+        const { error } = await supabase
+          .from('products')
+          .update({ image_url: result.imageUrl })
+          .eq('id', product.id);
+
+        if (error) throw error;
+
+        matched.push({ file: file.name, product: product.product_name });
+      } catch (error) {
+        failed.push(`${file.name} (${error.message})`);
+      }
+    }
+
+    setBulkImageResult({ matched, unmatched, failed });
+    setBulkImageUploading(false);
+    e.target.value = '';
+    fetchProducts();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setSaving(true);
     setMsg('');
 
@@ -839,6 +916,24 @@ const payload = {
                 <Button variant="outline" disabled={excelUploading} onClick={() => document.getElementById('excelUpload').click()}>
                   {excelUploading ? 'Uploading Excel...' : 'Upload Excel'}
                 </Button>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  id="bulkImageUpload"
+                  className="hidden"
+                  onChange={handleBulkImageUpload}
+                />
+
+                <Button
+                  variant="outline"
+                  disabled={bulkImageUploading}
+                  onClick={() => document.getElementById('bulkImageUpload').click()}
+                  title="Select multiple image files at once — each file's name (without extension) must exactly match the product's slug to be matched"
+                >
+                  {bulkImageUploading ? 'Matching & Uploading...' : 'Bulk Image Upload'}
+                </Button>
               </div>
 
               <div className="w-full lg:w-[380px]">
@@ -851,6 +946,49 @@ const payload = {
                 />
               </div>
             </div>
+
+            {bulkImageResult && (
+              <div className="mb-4 rounded-xl border bg-slate-50 p-4 text-sm space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-slate-900">
+                    Bulk Image Upload result: {bulkImageResult.matched.length} uploaded,{' '}
+                    {bulkImageResult.unmatched.length} skipped (no matching product),{' '}
+                    {bulkImageResult.failed.length} failed
+                  </p>
+                  <button
+                    type="button"
+                    className="text-slate-400 hover:text-slate-700"
+                    onClick={() => setBulkImageResult(null)}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+
+                {bulkImageResult.unmatched.length > 0 && (
+                  <div>
+                    <p className="text-amber-700 font-medium">
+                      Skipped — filename didn't exactly match any product's slug:
+                    </p>
+                    <ul className="list-disc list-inside text-slate-600">
+                      {bulkImageResult.unmatched.map((name) => (
+                        <li key={name}>{name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {bulkImageResult.failed.length > 0 && (
+                  <div>
+                    <p className="text-red-700 font-medium">Failed to upload:</p>
+                    <ul className="list-disc list-inside text-slate-600">
+                      {bulkImageResult.failed.map((name) => (
+                        <li key={name}>{name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="mb-5">
               <p className="text-sm font-medium text-gray-600 mb-2">Pending Details Filter</p>
