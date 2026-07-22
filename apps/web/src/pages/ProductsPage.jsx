@@ -48,6 +48,15 @@ const makeSlug = (text = '') =>
 
 const ALL_PRODUCTS_VALUE = '__all__';
 
+// via.placeholder.com has become unreliable/dead (connection resets,
+// timeouts) — some products in the database still have this saved as
+// their image_url from an old bulk import. Treat those as "no image" so
+// the browser never even attempts the dead URL and instantly falls back
+// to the working placehold.co placeholder instead.
+const isDeadPlaceholderUrl = (url = '') => url.includes('via.placeholder.com');
+const sanitizeImageUrl = (url) =>
+  url && !isDeadPlaceholderUrl(url) ? url : '';
+
 // Small edit-distance function for typo-tolerant search matching — no
 // external library needed, and fast enough for a few hundred products.
 function levenshteinDistance(a, b) {
@@ -85,34 +94,16 @@ function wordMatchesText(searchWord, text) {
   });
 }
 
-const fixedCategories = [
-  'Volvo Parts',
-  'Pumps',
-  'Valves',
-  'Fittings',
-  'Hose Pipes',
-  'Couplings',
-  'MSV Spares',
-  'Bearings',
-  'Seals & Sealing Products',
-  'Power Transmission Components',
-  'Workshop Tools & Service Equipment',
-  'Hydraulic Pumps & Motors',
-  'Hydraulic Cylinders',
-  'Filters & Filtration Systems',
-  'Custom Engineering Parts',
-  'Electrical Components',
-  'Other Machinery Items',
-];
+// Fallback bucket for any product whose category text doesn't match a
+// name in the Supabase `categories` table (deleted category, typo from a
+// bulk import, blank category, etc.) — this always exists as a category
+// card, even if the admin hasn't explicitly created it in the table.
+const OTHER_CATEGORY_NAME = 'Other Machinery Items';
 
-// Smaller category names that should appear as part of "Other Machinery
-// Items" (their own sub_category values are preserved, so they're still
-// filterable within that section) rather than as their own top-level card.
-const categoryAliases = {
-  Fasteners: 'Other Machinery Items',
-  'Pneumatic Components': 'Other Machinery Items',
-};
-
+// Icon + description are cosmetic/presentational only and aren't stored in
+// the `categories` table, so they still live here as a lookup by name.
+// Any category coming from the table that isn't listed here just falls
+// back to a generic icon/description below.
 const categoryMeta = {
   'Volvo Parts': {
     icon: Truck,
@@ -205,6 +196,7 @@ function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState(null);
   const [products, setProducts] = useState([]);
+  const [dbCategories, setDbCategories] = useState([]);
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -223,69 +215,107 @@ function ProductsPage() {
   });
 
   useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('status', 'Active')
-          .order('created_at', { ascending: false });
+    const loadData = async () => {
+      setLoading(true);
 
-        if (error) {
-          console.error('Supabase products error:', error);
+      try {
+        const [productsRes, categoriesRes] = await Promise.all([
+          supabase
+            .from('products')
+            .select('*')
+            .eq('status', 'Active')
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('categories')
+            .select('*')
+            .eq('status', 'Active')
+            .order('name', { ascending: true }),
+        ]);
+
+        if (productsRes.error) {
+          console.error('Supabase products error:', productsRes.error);
           setProducts([]);
-          return;
+        } else {
+          const formattedProducts = (productsRes.data || []).map((item) => ({
+            id: item.id,
+            name: item.product_name || '',
+            category: item.category || '',
+            subCategory: item.sub_category || '',
+            partNo: item.part_number || '',
+            make: item.make || '',
+            description: item.description || '',
+            image: sanitizeImageUrl(item.image_url),
+            status: item.status || '',
+            slug: item.slug || '',
+            metaTitle: item.meta_title || '',
+            metaDescription: item.meta_description || '',
+          }));
+
+          setProducts(formattedProducts);
         }
 
-        const formattedProducts = (data || []).map((item) => ({
-          id: item.id,
-          name: item.product_name || '',
-          category: item.category || '',
-          subCategory: item.sub_category || '',
-          partNo: item.part_number || '',
-          make: item.make || '',
-          description: item.description || '',
-          image: item.image_url || '',
-          status: item.status || '',
-          slug: item.slug || '',
-          metaTitle: item.meta_title || '',
-          metaDescription: item.meta_description || '',
-        }));
-
-        setProducts(formattedProducts);
+        if (categoriesRes.error) {
+          console.error('Supabase categories error:', categoriesRes.error);
+          setDbCategories([]);
+        } else {
+          setDbCategories(categoriesRes.data || []);
+        }
       } catch (err) {
-        console.error('Products load error:', err);
+        console.error('Products/categories load error:', err);
         setProducts([]);
+        setDbCategories([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadProducts();
+    loadData();
   }, []);
 
   const categories = useMemo(() => {
+    // The Supabase `categories` table is the single source of truth for
+    // which categories exist — admin panel me category add/delete karte
+    // hi yahan turant reflect ho jaata hai (next fetch par), koi hardcoded
+    // list yahan maintain nahi karni padti.
+    const dbCategoryNames = dbCategories
+      .map((cat) => (cat.name || '').trim())
+      .filter(Boolean);
+
+    const dbCategoryNameSet = new Set(
+      dbCategoryNames.map((name) => name.toLowerCase())
+    );
+
+    // 'Other Machinery Items' catch-all bucket hamesha available rahega,
+    // chahe admin ne table mein explicitly banaya ho ya nahi — taaki koi
+    // product silently gayab na ho jaaye.
+    const orderedNames = dbCategoryNameSet.has(OTHER_CATEGORY_NAME.toLowerCase())
+      ? dbCategoryNames
+      : [...dbCategoryNames, OTHER_CATEGORY_NAME];
+
     const grouped = {};
-
-    products.forEach((product) => {
-      if (!product.category) return;
-      const cleanCategory = categoryAliases[product.category.trim()] || product.category.trim();
-
-      if (!grouped[cleanCategory]) grouped[cleanCategory] = [];
-      grouped[cleanCategory].push(product);
+    orderedNames.forEach((name) => {
+      grouped[name] = [];
     });
 
-    // Always show the official fixed categories (even if currently empty),
-    // PLUS any other category name that actually has active products — so a
-    // product never silently disappears just because its category text
-    // doesn't exactly match the fixed list (e.g. from a bulk import that
-    // used a slightly different category name).
-    const extraCategoryNames = Object.keys(grouped).filter(
-      (name) => !fixedCategories.includes(name)
-    );
-    const allCategoryNames = [...fixedCategories, ...extraCategoryNames];
+    products.forEach((product) => {
+      const cleanCategory = (product.category || '').trim();
 
-    return allCategoryNames.map((name) => ({
+      // Case/whitespace-insensitive match against the live categories
+      // table — matlab "Pumps", "pumps ", "PUMPS" sab same category ban
+      // jaayenge.
+      const matchedName = cleanCategory
+        ? orderedNames.find(
+            (name) => name.toLowerCase() === cleanCategory.toLowerCase()
+          )
+        : null;
+
+      // Category blank ho, ya table mein match na ho (deleted category,
+      // typo, ya bulk-import se aayi ajeeb value) — sab "Other Machinery
+      // Items" mein chala jaayega.
+      grouped[matchedName || OTHER_CATEGORY_NAME].push(product);
+    });
+
+    return orderedNames.map((name) => ({
       name,
       icon: categoryMeta[name]?.icon || Package,
       description:
@@ -293,7 +323,7 @@ function ProductsPage() {
         'Industrial components, machinery parts and MRO supplies.',
       items: grouped[name] || [],
     }));
-  }, [products]);
+  }, [products, dbCategories]);
 
   useEffect(() => {
     if (categories.length === 0) return;
@@ -861,19 +891,19 @@ function ProductsPage() {
                               <img
                                 src={
                                   item.image ||
-                                  'https://via.placeholder.com/500x350?text=Product+Image'
+                                  'https://placehold.co/500x350?text=Product+Image'
                                 }
                                 alt={item.name || 'Industrial Product'}
                                 loading="lazy"
                                 decoding="async"
-                                fetchPriority="low"
+                                fetchpriority="low"
                                 sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                 width="500"
                                 height="350"
                                 className="w-full h-full object-contain p-6"
                                 onError={(e) => {
                                   e.currentTarget.src =
-                                    'https://via.placeholder.com/500x350?text=Product+Image';
+                                    'https://placehold.co/500x350?text=Product+Image';
                                 }}
                               />
                             </div>

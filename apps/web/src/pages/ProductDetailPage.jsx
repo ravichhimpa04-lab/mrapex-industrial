@@ -39,6 +39,15 @@ const makeSlug = (text = '') =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
+// via.placeholder.com has become unreliable/dead (connection resets,
+// timeouts) — some products in the database still have this saved as
+// their image_url from an old bulk import. Treat those as "no image" so
+// the browser never even attempts the dead URL and instantly falls back
+// to the working placehold.co placeholder instead.
+const isDeadPlaceholderUrl = (url = '') => url.includes('via.placeholder.com');
+const sanitizeImageUrl = (url) =>
+  url && !isDeadPlaceholderUrl(url) ? url : '';
+
 function ProductDetailPage() {
   const { slug } = useParams();
 
@@ -86,7 +95,9 @@ function ProductDetailPage() {
         return savedSlug === productSlug || fallbackSlug === productSlug;
       });
 
-      setProduct(found || null);
+      setProduct(
+        found ? { ...found, image_url: sanitizeImageUrl(found.image_url) } : null
+      );
 
       if (found) {
         const related = items
@@ -97,7 +108,8 @@ function ProductDetailPage() {
                 item.sub_category === found.sub_category ||
                 item.make === found.make)
           )
-          .slice(0, 6);
+          .slice(0, 6)
+          .map((item) => ({ ...item, image_url: sanitizeImageUrl(item.image_url) }));
 
         setRelatedProducts(related);
       } else {
@@ -452,18 +464,18 @@ function ProductDetailPage() {
                   <img
                     src={
                       product.image_url ||
-                      'https://via.placeholder.com/700x500?text=Product+Image'
+                      'https://placehold.co/700x500?text=Product+Image'
                     }
                     alt={product.product_name}
                     loading="eager"
-                    fetchPriority="high"
+                    fetchpriority="high"
                     decoding="async"
                     width="700"
                     height="500"
                     className="max-w-full max-h-full object-contain p-4 transition-transform duration-300 hover:scale-105"
                     onError={(e) => {
                       e.currentTarget.src =
-                        'https://via.placeholder.com/700x500?text=Product+Image';
+                        'https://placehold.co/700x500?text=Product+Image';
                     }}
                   />
                 </div>
@@ -671,7 +683,7 @@ function ProductDetailPage() {
                           <img
                             src={
                               item.image_url ||
-                              'https://via.placeholder.com/400x300?text=Product'
+                              'https://placehold.co/400x300?text=Product'
                             }
                             alt={item.product_name}
                             loading="lazy"
@@ -679,7 +691,7 @@ function ProductDetailPage() {
                             className="max-w-full max-h-full object-contain p-3"
                             onError={(e) => {
                               e.currentTarget.src =
-                                'https://via.placeholder.com/400x300?text=Product';
+                                'https://placehold.co/400x300?text=Product';
                             }}
                           />
                         </div>
