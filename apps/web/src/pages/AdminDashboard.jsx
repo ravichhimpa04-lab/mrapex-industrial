@@ -78,6 +78,8 @@ function AdminDashboard() {
   const [bulkImageResult, setBulkImageResult] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
+  const [productPage, setProductPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 50;
 
   const [activeTab, setActiveTab] = useState('products');
   const [enquiries, setEnquiries] = useState([]);
@@ -245,6 +247,21 @@ setCheckingAccess(false);
       String(item.make || '').toLowerCase().includes(text)
     );
   }, [baseFilteredProducts, searchText]);
+
+  const totalProductPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE));
+
+  useEffect(() => {
+    setProductPage(1);
+  }, [activeFilter, searchText]);
+
+  useEffect(() => {
+    if (productPage > totalProductPages) setProductPage(totalProductPages);
+  }, [totalProductPages, productPage]);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (productPage - 1) * PRODUCTS_PER_PAGE;
+    return filteredProducts.slice(start, start + PRODUCTS_PER_PAGE);
+  }, [filteredProducts, productPage]);
 
   const filteredEnquiries = useMemo(() => {
     const text = enquirySearch.trim().toLowerCase();
@@ -1142,7 +1159,7 @@ const payload = {
                   </thead>
 
                   <tbody>
-                    {filteredProducts.map((item, index) => (
+                    {paginatedProducts.map((item, index) => (
                       <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                         <td className="p-3 border-t w-[110px] min-w-[110px]">
   {item.image_url ? (
@@ -1158,10 +1175,32 @@ const payload = {
   )}
 </td>
 
-                        <td className="p-3 border-t font-medium">{isBlank(item.product_name) ? <BlankBadge text="Missing" /> : item.product_name}</td>
+                        <td className="p-3 border-t font-medium min-w-[180px] max-w-[360px] resize-x overflow-auto">
+  {isBlank(item.product_name) ? (
+    <BlankBadge text="Missing" />
+  ) : (
+    <div
+      className="whitespace-normal break-words leading-5 max-h-[84px] overflow-y-auto"
+      title={item.product_name}
+    >
+      {item.product_name}
+    </div>
+  )}
+</td>
                         <td className="p-3 border-t">{isBlank(item.category) ? <BlankBadge text="Missing" /> : item.category}</td>
                         <td className="p-3 border-t">{isBlank(item.sub_category) ? <BlankBadge text="Missing" /> : item.sub_category}</td>
-                        <td className="p-3 border-t">{isBlank(item.part_number) ? <BlankBadge text="Missing" /> : item.part_number}</td>
+                        <td className="p-3 border-t min-w-[140px] max-w-[320px] resize-x overflow-auto">
+  {isBlank(item.part_number) ? (
+    <BlankBadge text="Missing" />
+  ) : (
+    <div
+      className="whitespace-normal break-words leading-5 max-h-[84px] overflow-y-auto"
+      title={item.part_number}
+    >
+      {item.part_number}
+    </div>
+  )}
+</td>
                         <td className="p-3 border-t">{isBlank(item.make) ? <BlankBadge text="Missing" /> : item.make}</td>
 
                         <td className="p-3 border-t min-w-[260px] max-w-[520px] resize-x overflow-auto">
@@ -1208,6 +1247,37 @@ const payload = {
                   </tbody>
                 </table>
               </div>
+
+              {filteredProducts.length > 0 && (
+                <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm">
+                  <p className="text-gray-600">
+                    Page {productPage} of {totalProductPages} &nbsp;
+                    <span className="text-gray-400">
+                      (showing {paginatedProducts.length} of {filteredProducts.length})
+                    </span>
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={productPage <= 1}
+                      onClick={() => setProductPage((p) => Math.max(1, p - 1))}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={productPage >= totalProductPages}
+                      onClick={() => setProductPage((p) => Math.min(totalProductPages, p + 1))}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </>
           )
         ) : activeTab === 'categories' ? (
