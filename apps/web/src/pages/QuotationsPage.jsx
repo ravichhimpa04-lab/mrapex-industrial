@@ -50,7 +50,7 @@ function QuotationsPage() {
         {loading ? (
           <p>Loading...</p>
         ) : quotations.length === 0 ? (
-          <p className="text-slate-500">Abhi koi quotation nahi bani.</p>
+          <p className="text-slate-500">Quotation not genrated.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border text-sm">

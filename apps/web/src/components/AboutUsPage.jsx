@@ -457,7 +457,7 @@ function AboutUsPage() {
                     <div>
                       <p className="font-bold">Location</p>
                       <p className="text-white/65 text-sm">
-                        Jaipur, Rajasthan, India
+                        Rajasthan, India
                       </p>
                     </div>
                   </div>

@@ -189,7 +189,7 @@ function ContactPage() {
                           Location
                         </h3>
                         <p className="text-muted-foreground mt-1">
-                          Jaipur, Rajasthan
+                          Rajasthan
                           <br />
                           India
                         </p>

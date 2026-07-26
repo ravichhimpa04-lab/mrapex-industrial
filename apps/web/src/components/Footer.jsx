@@ -107,7 +107,7 @@ function Footer() {
               <li className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 mt-0.5 shrink-0 text-blue-300" />
                 <span className="text-sm leading-relaxed text-white/65">
-                  Jaipur, Rajasthan
+                  Rajasthan
                   <br />
                   India
                 </span>
@@ -160,6 +160,18 @@ function Footer() {
             <div>
               <span className="font-bold text-white">Business Type:</span>{' '}
               RFQ based B2B industrial supply assistance.
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white/65 mt-4 pt-4 border-t border-white/10">
+            <div>
+              <span className="font-bold text-white">GSTIN:</span>{' '}
+              08ACIFM1609B1ZL
+            </div>
+
+            <div>
+              <span className="font-bold text-white">Udyam Registration No.:</span>{' '}
+              UDYAM-RJ-16-0087555 (Micro Enterprise)
             </div>
           </div>
         </div>
