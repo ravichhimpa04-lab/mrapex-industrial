@@ -324,12 +324,17 @@ setCheckingAccess(false);
     if (!nextValue) {
       // Going live: stamp the launch moment so the Grand Launch animation
       // only shows during the launch window, then never again for anyone.
-      await supabase
+      const { error: launchError } = await supabase
         .from('site_settings')
         .upsert(
           { key: 'site_launched_at', value: new Date().toISOString() },
           { onConflict: 'key' }
         );
+
+      if (launchError) {
+        console.error('Failed to save site_launched_at:', launchError);
+        alert('Warning: Launch animation timestamp could not be saved: ' + launchError.message);
+      }
     }
 
     setMaintenanceMode(nextValue);
