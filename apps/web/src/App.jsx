@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import ScrollToTop from './components/ScrollToTop';
 import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
+import LaunchAnimation, { shouldShowLaunch } from '@/components/LaunchAnimation.jsx';
 
 const AIAssistantWidget = React.lazy(() =>
   import('./components/AIAssistantWidget')
@@ -34,6 +35,8 @@ function AppContent() {
 
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [checkingMaintenance, setCheckingMaintenance] = useState(true);
+  const [showLaunch, setShowLaunch] = useState(false);
+  const [launchedAtIso, setLaunchedAtIso] = useState(null);
 
   useEffect(() => {
     const checkMaintenanceMode = async () => {
@@ -43,8 +46,22 @@ function AppContent() {
         .eq('key', 'maintenance_mode')
         .single();
 
-      setMaintenanceMode(!error && data?.value === 'true');
+      const isMaintenance = !error && data?.value === 'true';
+      setMaintenanceMode(isMaintenance);
       setCheckingMaintenance(false);
+
+      if (!isMaintenance) {
+        const { data: launchData } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'site_launched_at')
+          .single();
+
+        if (shouldShowLaunch(launchData?.value)) {
+          setLaunchedAtIso(launchData.value);
+          setShowLaunch(true);
+        }
+      }
     };
 
     checkMaintenanceMode();
@@ -58,6 +75,10 @@ function AppContent() {
 
   if (maintenanceMode && !isAdminRoute) {
     return <MaintenancePage />;
+  }
+
+  if (showLaunch && !isAdminRoute) {
+    return <LaunchAnimation launchedAtIso={launchedAtIso} onDone={() => setShowLaunch(false)} />;
   }
 
   return (

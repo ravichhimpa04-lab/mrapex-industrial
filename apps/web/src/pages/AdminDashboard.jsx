@@ -321,6 +321,17 @@ setCheckingAccess(false);
 
     if (error) throw error;
 
+    if (!nextValue) {
+      // Going live: stamp the launch moment so the Grand Launch animation
+      // only shows during the launch window, then never again for anyone.
+      await supabase
+        .from('site_settings')
+        .upsert(
+          { key: 'site_launched_at', value: new Date().toISOString() },
+          { onConflict: 'key' }
+        );
+    }
+
     setMaintenanceMode(nextValue);
 
     alert(nextValue ? 'Maintenance Mode ON ho gaya.' : 'Website Live ho gayi.');
