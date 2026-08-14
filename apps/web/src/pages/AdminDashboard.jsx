@@ -539,71 +539,71 @@ setCheckingAccess(false);
   // match anything is skipped and reported, never guessed onto the wrong
   // product.
   const handleBulkImageUpload = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
 
-    setBulkImageUploading(true);
-    setBulkImageResult(null);
-    setMsg('');
+  setBulkImageUploading(true);
+  setBulkImageResult(null);
+  setMsg('');
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-    // Build slug -> product lookup from the currently loaded products list.
-    const slugToProduct = new Map();
-    products.forEach((p) => {
-      const slug = makeSlug(`${part}`);
-      slugToProduct.set(slug, p);
-    });
+  // Build slug -> product lookup from the currently loaded products list.
+  const slugToProduct = new Map();
+  products.forEach((p) => {
+    const slug = makeSlug(`${p.part_number || ''}`);
+    slugToProduct.set(slug, p);
+  });
 
-    const matched = [];
-    const unmatched = [];
-    const failed = [];
+  const matched = [];
+  const unmatched = [];
+  const failed = [];
 
-    for (const file of files) {
-      const fileSlug = file.name.replace(/\.[^/.]+$/, '').toLowerCase();
-      const product = slugToProduct.get(fileSlug);
+  for (const file of files) {
+    const fileSlug = file.name.replace(/\.[^/.]+$/, '').toLowerCase();
+    const product = slugToProduct.get(fileSlug);
 
-      if (!product) {
-        unmatched.push(file.name);
-        continue;
-      }
-
-      try {
-        const formData = new FormData();
-        formData.append('image', file);
-
-        const response = await fetch(`${API_URL}/upload-r2`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${session?.access_token}` },
-          body: formData,
-        });
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || 'Upload failed');
-        }
-
-        const { error } = await supabase
-          .from('products')
-          .update({ image_url: result.imageUrl })
-          .eq('id', product.id);
-
-        if (error) throw error;
-
-        matched.push({ file: file.name, product: product.part_number });
-      } catch (error) {
-        failed.push(`${file.name} (${error.message})`);
-      }
+    if (!product) {
+      unmatched.push(file.name);
+      continue;
     }
 
-    setBulkImageResult({ matched, unmatched, failed });
-    setBulkImageUploading(false);
-    e.target.value = '';
-    fetchProducts();
-  };
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch(`${API_URL}/upload-r2`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Upload failed');
+      }
+
+      const { error } = await supabase
+        .from('products')
+        .update({ image_url: result.imageUrl })
+        .eq('id', product.id);
+
+      if (error) throw error;
+
+      matched.push({ file: file.name, product: product.part_number });
+    } catch (error) {
+      failed.push(`${file.name} (${error.message})`);
+    }
+  }
+
+  setBulkImageResult({ matched, unmatched, failed });
+  setBulkImageUploading(false);
+  e.target.value = '';
+  fetchProducts();
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
