@@ -593,7 +593,7 @@ setCheckingAccess(false);
 
         if (error) throw error;
 
-        matched.push({ file: file.name, product: product.product_name });
+        matched.push({ file: file.name, product: product.part_number });
       } catch (error) {
         failed.push(`${file.name} (${error.message})`);
       }
