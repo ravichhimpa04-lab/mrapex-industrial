@@ -38,7 +38,7 @@ const generateSEO = (item = {}) => {
   const part = item.part_number || '';
   const category = item.category || '';
 
-  const slug = makeSlug(`${name} ${part}`);
+  const slug = makeSlug(`${part}`);
 
   const meta_title = `${name}${part ? ` | Part No ${part}` : ''} | MR Apex Industrial Components`;
 
@@ -553,7 +553,7 @@ setCheckingAccess(false);
     // Build slug -> product lookup from the currently loaded products list.
     const slugToProduct = new Map();
     products.forEach((p) => {
-      const slug = p.slug || makeSlug(`${p.part_number || ''}`);
+      const slug = makeSlug(`${part}`);
       slugToProduct.set(slug, p);
     });
 
