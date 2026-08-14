@@ -553,7 +553,7 @@ setCheckingAccess(false);
     // Build slug -> product lookup from the currently loaded products list.
     const slugToProduct = new Map();
     products.forEach((p) => {
-      const slug = p.slug || makeSlug(`${p.product_name || ''} ${p.part_number || ''}`);
+      const slug = p.slug || makeSlug(`${p.part_number || ''}`);
       slugToProduct.set(slug, p);
     });
 
