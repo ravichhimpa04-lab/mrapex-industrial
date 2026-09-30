@@ -51,7 +51,8 @@ function CreateQuotationPage() {
       part_number: '',
       make: '',
       description: '',
-      quantity: 1,
+      quantity: '',
+      uom: '',
       rate: 0,
       amount: 0,
     },
@@ -129,9 +130,10 @@ function CreateQuotationPage() {
       part_number: product.part_no || product.part_number || '',
       make: product.make || '',
       description: product.description || '',
-      quantity: next[index].quantity || 1,
+      quantity: next[index].quantity || '',
+      uom: next[index].uom || '',
       rate: next[index].rate || 0,
-      amount: Number(next[index].quantity || 1) * Number(next[index].rate || 0),
+      amount: Number(next[index].quantity || '') * Number(next[index].rate || 0),
     };
 
     setItems(next);
@@ -145,7 +147,8 @@ function CreateQuotationPage() {
         part_number: '',
         make: '',
         description: '',
-        quantity: 1,
+        quantity: '',
+        uom: '',
         rate: 0,
         amount: 0,
       },
@@ -235,6 +238,7 @@ function CreateQuotationPage() {
       make: item.make,
       description: item.description,
       quantity: Number(item.quantity || 0),
+      uom: item.uom,
       rate: Number(item.rate || 0),
       amount: Number(item.amount || 0),
     }));
@@ -303,6 +307,7 @@ function CreateQuotationPage() {
                 <Input label="Part No" value={item.part_number} onChange={(v) => updateItem(index, 'part_number', v)} />
                 <Input label="Make" value={item.make} onChange={(v) => updateItem(index, 'make', v)} />
                 <Input label="Qty" type="number" value={item.quantity} onChange={(v) => updateItem(index, 'quantity', v)} />
+                <Input label="UOM" value={item.uom} onChange={(v) => updateItem(index, 'uom', v)} />
                 <Input label="Rate" type="number" value={item.rate} onChange={(v) => updateItem(index, 'rate', v)} />
                 <Input label="Amount" type="number" value={item.amount} onChange={(v) => updateItem(index, 'amount', v)} />
               </div>
