@@ -235,6 +235,7 @@ function QuotationDetailPage() {
                   <td className="p-3">{item.part_number}</td>
                   <td className="p-3">{item.make}</td>
                   <td className="p-3 text-right">{item.quantity}</td>
+                  <td className="p-3 text-right">{item.uom}</td>
                   <td className="p-3 text-right">{money(item.rate)}</td>
                   <td className="p-3 text-right">{money(item.amount)}</td>
                 </tr>
