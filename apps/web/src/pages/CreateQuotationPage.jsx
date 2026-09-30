@@ -119,25 +119,48 @@ function CreateQuotationPage() {
   }
 
   function selectProduct(index, productId) {
-    const product = products.find((p) => String(p.id) === String(productId));
-    if (!product) return;
+  const next = [...items];
 
-    const next = [...items];
-
+  // Other / Manual Item select kiya
+  if (productId === '__OTHER__') {
     next[index] = {
       ...next[index],
-      product_name: product.name || product.product_name || '',
-      part_number: product.part_no || product.part_number || '',
-      make: product.make || '',
-      description: product.description || '',
-      quantity: next[index].quantity || '',
-      uom: next[index].uom || '',
-      rate: next[index].rate || 0,
-      amount: Number(next[index].quantity || '') * Number(next[index].rate || 0),
+      product_name: '',
+      part_number: '',
+      make: '',
+      description: '',
+      quantity: '',
+      uom: '',
+      rate: 0,
+      amount: 0,
     };
 
     setItems(next);
+    return;
   }
+
+  const product = products.find(
+    (p) => String(p.id) === String(productId)
+  );
+
+  if (!product) return;
+
+  next[index] = {
+    ...next[index],
+    product_name: product.name || product.product_name || '',
+    part_number: product.part_no || product.part_number || '',
+    make: product.make || '',
+    description: product.description || '',
+    quantity: next[index].quantity || '',
+    uom: next[index].uom || '',
+    rate: next[index].rate || 0,
+    amount:
+      Number(next[index].quantity || '') *
+      Number(next[index].rate || 0),
+  };
+
+  setItems(next);
+}
 
   function addItem() {
     setItems((prev) => [
@@ -291,16 +314,21 @@ function CreateQuotationPage() {
                 <div className="md:col-span-2">
                   <label className="text-sm font-medium">Select Product</label>
                   <select
-                    className="w-full border rounded p-2 mt-1"
-                    onChange={(e) => selectProduct(index, e.target.value)}
-                  >
-                    <option value="">Select</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name || p.product_name}
-                      </option>
-                    ))}
-                  </select>
+  className="w-full border rounded p-2 mt-1"
+  onChange={(e) => selectProduct(index, e.target.value)}
+>
+  <option value="">Select</option>
+
+  <option value="__OTHER__">
+    Other / Manual Item
+  </option>
+
+  {products.map((p) => (
+    <option key={p.id} value={p.id}>
+      {p.name || p.product_name}
+    </option>
+  ))}
+</select>
                 </div>
 
                 <Input label="Product Name" value={item.product_name} onChange={(v) => updateItem(index, 'product_name', v)} />
