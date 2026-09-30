@@ -271,11 +271,15 @@ function CreateQuotationPage() {
       .insert(itemPayload);
 
     if (itemError) {
-      console.error(itemError);
-      alert('Quotation bani, lekin items save nahi hue');
-      setSaving(false);
-      return;
-    }
+  console.error('QUOTATION ITEM ERROR:', itemError);
+
+  alert(
+    `Item save error: ${itemError.message || 'Unknown error'}`
+  );
+
+  setSaving(false);
+  return;
+}
 
     alert('Quotation Draft save ho gayi');
     navigate('/admin/quotations');

@@ -219,6 +219,7 @@ function QuotationDetailPage() {
                 <th className="p-3 text-left">Part No</th>
                 <th className="p-3 text-left">Make</th>
                 <th className="p-3 text-right">Qty</th>
+                <th className="p-3 text-right">UOM</th>
                 <th className="p-3 text-right">Rate</th>
                 <th className="p-3 text-right">Amount</th>
               </tr>
@@ -243,7 +244,7 @@ function QuotationDetailPage() {
 
               {items.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="p-6 text-center text-slate-500">
+                  <td colSpan="8" className="p-6 text-center text-slate-500">
                     No items found
                   </td>
                 </tr>
