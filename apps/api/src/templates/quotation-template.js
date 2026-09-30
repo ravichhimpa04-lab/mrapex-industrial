@@ -59,7 +59,7 @@ function buildItemsRows(items = [], quotation = {}) {
       <td>${escapeHtml(item.make || '-')}<br><span class="it-sub" style="margin-top:0">${escapeHtml(item.origin || '')}</span></td>
       <td class="mono">${escapeHtml(item.hsn || '-')}</td>
       <td class="num-cell">${escapeHtml(item.quantity || 0)}</td>
-      <td class="center-cell">${escapeHtml(item.unit || 'PCS')}</td>
+      <td class="center-cell">${escapeHtml(item.uom || 'PCS')}</td>
       <td class="num-cell mono">${number(item.rate)}</td>
       <td class="num-cell">${escapeHtml(item.discount_percent || 0)}%</td>
       <td class="num-cell">${escapeHtml(item.gst_percent || quotation.gst_percent || 18)}%</td>
