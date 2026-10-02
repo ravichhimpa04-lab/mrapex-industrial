@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 
 function getFinancialYear() {
@@ -25,10 +25,14 @@ function addDays(days) {
 
 function CreateQuotationPage() {
   const navigate = useNavigate();
+  const { id } = useParams();
+
+  const isEditMode = Boolean(id);
 
   const [products, setProducts] = useState([]);
   const [quotationNo, setQuotationNo] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loadingQuotation, setLoadingQuotation] = useState(false);
 
   const [form, setForm] = useState({
     customer_name: '',
@@ -85,24 +89,92 @@ function CreateQuotationPage() {
   }
 
   async function fetchProducts() {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error(error);
-      alert('Products load nahi hue');
-    } else {
-      setProducts(data || []);
-    }
+  if (error) {
+    console.error(error);
+    alert('Products load nahi hue');
+  } else {
+    setProducts(data || []);
+  }
+}
+
+async function fetchQuotationForEdit() {
+  setLoadingQuotation(true);
+
+  const { data: quotation, error: quotationError } = await supabase
+    .from('quotations')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (quotationError) {
+    console.error(quotationError);
+    alert('Quotation load nahi hui');
+    setLoadingQuotation(false);
+    return;
   }
 
-  useEffect(() => {
-    generateQuotationNo();
-    fetchProducts();
-  }, []);
+  const { data: quotationItems, error: itemError } = await supabase
+    .from('quotation_items')
+    .select('*')
+    .eq('quotation_id', id)
+    .order('created_at', { ascending: true });
 
+  if (itemError) {
+    console.error(itemError);
+    alert('Quotation items load nahi hue');
+    setLoadingQuotation(false);
+    return;
+  }
+
+  setQuotationNo(quotation.quotation_no);
+
+  setForm({
+    customer_name: quotation.customer_name || '',
+    company_name: quotation.company_name || '',
+    mobile: quotation.mobile || '',
+    email: quotation.email || '',
+    address: quotation.address || '',
+    quotation_date: quotation.quotation_date || todayDate(),
+    valid_until: quotation.valid_until || addDays(30),
+    gst_percent: quotation.gst_percent ?? 18,
+    discount_amount: quotation.discount_amount ?? 0,
+    freight_amount: quotation.freight_amount ?? 0,
+    terms:
+      quotation.terms ||
+      '30% advance with Purchase Order, balance before dispatch.',
+    notes: quotation.notes || '',
+  });
+
+  setItems(
+    (quotationItems || []).map((item) => ({
+      product_name: item.product_name || '',
+      part_number: item.part_number || '',
+      make: item.make || '',
+      description: item.description || '',
+      quantity: item.quantity ?? '',
+      uom: item.uom || '',
+      rate: item.rate ?? 0,
+      amount: item.amount ?? 0,
+    }))
+  );
+
+  setLoadingQuotation(false);
+}
+
+useEffect(() => {
+  fetchProducts();
+
+  if (id) {
+    fetchQuotationForEdit();
+  } else {
+    generateQuotationNo();
+  }
+}, [id]);
   function updateForm(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -206,91 +278,117 @@ function CreateQuotationPage() {
   }, [subtotal, form, gstAmount]);
 
   async function saveQuotation() {
-    if (!form.customer_name || !form.company_name || !form.mobile) {
-      alert('Customer name, company name aur mobile required hai');
-      return;
-    }
+  if (!form.customer_name || !form.company_name || !form.mobile) {
+    alert('Customer name, company name aur mobile required hai');
+    return;
+  }
 
-    const validItems = items.filter((item) => item.product_name && item.quantity);
+  const validItems = items.filter((item) => item.product_name && item.quantity);
 
-    if (validItems.length === 0) {
-      alert('Kam se kam ek product add karo');
-      return;
-    }
+  if (validItems.length === 0) {
+    alert('Kam se kam ek product add karo');
+    return;
+  }
 
-    setSaving(true);
+  setSaving(true);
 
-    const quotationPayload = {
-      quotation_no: quotationNo,
-      customer_name: form.customer_name,
-      company_name: form.company_name,
-      mobile: form.mobile,
-      email: form.email,
-      address: form.address,
-      quotation_date: form.quotation_date,
-      valid_until: form.valid_until,
-      gst_percent: Number(form.gst_percent || 0),
-      discount_amount: Number(form.discount_amount || 0),
-      freight_amount: Number(form.freight_amount || 0),
-      subtotal: Number(subtotal || 0),
-      gst_amount: Number(gstAmount || 0),
-      grand_total: Number(grandTotal || 0),
-      terms: form.terms,
-      notes: form.notes,
-      status: 'Draft',
-      customer_email_sent: false,
-    };
+  const quotationPayload = {
+    quotation_no: quotationNo,
+    customer_name: form.customer_name,
+    company_name: form.company_name,
+    mobile: form.mobile,
+    email: form.email,
+    address: form.address,
+    quotation_date: form.quotation_date,
+    valid_until: form.valid_until,
+    gst_percent: Number(form.gst_percent || 0),
+    discount_amount: Number(form.discount_amount || 0),
+    freight_amount: Number(form.freight_amount || 0),
+    subtotal: Number(subtotal || 0),
+    gst_amount: Number(gstAmount || 0),
+    grand_total: Number(grandTotal || 0),
+    terms: form.terms,
+    notes: form.notes,
+  };
 
-    const { data: quotation, error: quotationError } = await supabase
+  let quotationId = id;
+
+  if (isEditMode) {
+    const { error } = await supabase
       .from('quotations')
-      .insert([quotationPayload])
-      .select()
-      .single();
+      .update(quotationPayload)
+      .eq('id', id);
 
-    if (quotationError) {
-      console.error(quotationError);
-      alert('Quotation save nahi hui');
+    if (error) {
+      console.error(error);
+      alert(`Quotation update nahi hui: ${error.message}`);
       setSaving(false);
       return;
     }
 
-    const itemPayload = validItems.map((item) => ({
-      quotation_id: quotation.id,
-      product_name: item.product_name,
-      part_number: item.part_number,
-      make: item.make,
-      description: item.description,
-      quantity: Number(item.quantity || 0),
-      uom: item.uom,
-      rate: Number(item.rate || 0),
-      amount: Number(item.amount || 0),
-    }));
-
-    const { error: itemError } = await supabase
+    // purane items delete karke naye insert karenge
+    const { error: delError } = await supabase
       .from('quotation_items')
-      .insert(itemPayload);
+      .delete()
+      .eq('quotation_id', id);
 
-    if (itemError) {
-  console.error('QUOTATION ITEM ERROR:', itemError);
+    if (delError) {
+      console.error(delError);
+      alert(`Purane items delete nahi hue: ${delError.message}`);
+      setSaving(false);
+      return;
+    }
+  } else {
+    const { data, error } = await supabase
+      .from('quotations')
+      .insert([{ ...quotationPayload, status: 'Draft', customer_email_sent: false }])
+      .select()
+      .single();
 
-  alert(
-    `Item save error: ${itemError.message || 'Unknown error'}`
-  );
+    if (error) {
+      console.error(error);
+      alert(`Quotation save nahi hui: ${error.message}`);
+      setSaving(false);
+      return;
+    }
+
+    quotationId = data.id;
+  }
+
+  const itemPayload = validItems.map((item) => ({
+    quotation_id: quotationId,
+    product_name: item.product_name,
+    part_number: item.part_number,
+    make: item.make,
+    description: item.description,
+    quantity: Number(item.quantity || 0),
+    uom: item.uom,
+    rate: Number(item.rate || 0),
+    amount: Number(item.amount || 0),
+  }));
+
+  const { error: itemError } = await supabase
+    .from('quotation_items')
+    .insert(itemPayload);
+
+  if (itemError) {
+    console.error('QUOTATION ITEM ERROR:', itemError);
+    alert(`Item save error: ${itemError.message || 'Unknown error'}`);
+    setSaving(false);
+    return;
+  }
 
   setSaving(false);
-  return;
+  alert(isEditMode ? 'Quotation update ho gayi' : 'Quotation Draft save ho gayi');
+  navigate('/admin/quotations');
 }
-
-    alert('Quotation Draft save ho gayi');
-    navigate('/admin/quotations');
-  }
 
   return (
     <div className="min-h-screen bg-slate-100 p-6">
       <div className="max-w-7xl mx-auto bg-white rounded-xl shadow p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Create Quotation</h1>
+            <h1 className="text-2xl font-bold">{isEditMode ? 'Edit Quotation' : 'Create Quotation'}</h1>
             <p className="text-slate-500">{quotationNo}</p>
           </div>
 
@@ -319,6 +417,7 @@ function CreateQuotationPage() {
                   <label className="text-sm font-medium">Select Product</label>
                   <select
   className="w-full border rounded p-2 mt-1"
+  value=""
   onChange={(e) => selectProduct(index, e.target.value)}
 >
   <option value="">Select</option>

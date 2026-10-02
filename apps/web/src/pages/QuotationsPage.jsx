@@ -91,12 +91,21 @@ function QuotationsPage() {
                     </td>
 
                     <td className="p-3">
-                      <Link
-                        to={`/admin/quotations/${q.id}`}
-                        className="text-blue-600 underline font-medium"
-                      >
-                        View
-                      </Link>
+                      <div className="flex gap-3">
+  <Link
+    to={`/admin/quotations/${q.id}`}
+    className="text-blue-600 underline font-medium"
+  >
+    View
+  </Link>
+
+  <Link
+    to={`/admin/quotations/${q.id}/edit`}
+    className="text-green-600 underline font-medium"
+  >
+    Edit
+  </Link>
+</div>
                     </td>
                   </tr>
                 ))}
